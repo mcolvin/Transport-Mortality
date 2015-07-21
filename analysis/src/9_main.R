@@ -1,6 +1,6 @@
 
 
-setwd("C:/Users/mcolvin/Documents/projects/PSM/analyses/Transport Mortality/analysis/")
+setwd("C:/Users/mcolvin/Documents/projects/PSM/analyses/Transport-Mortality/analysis/")
 
 	source("./src/1_global.R")  	
 	source("./src/2_functions.R")         

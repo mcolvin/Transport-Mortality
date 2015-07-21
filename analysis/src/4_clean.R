@@ -250,7 +250,11 @@ test$av.day.bet.trp<-ifelse(test$location == names(def)[1] & is.nan(test$av.day.
 def<-tapply(test$av.no.trp.bef,test$location, mean, na.rm = T)
 test$av.no.trp.bef<-ifelse(test$location == names(def)[1] & is.nan(test$av.no.trp.bef) == T,as.numeric(def[1]),test$av.no.trp.bef)
 
+
 test$tot.time<- test$loadingTime+test$haulingTime
+def<-tapply(test$loadingTime,test$location, mean, na.rm = T)
+test$tot.time<-ifelse(test$location == names(def)[1] & is.na(test$tot.time) == T,as.numeric(def[1]),test$tot.time)
+test[test$location == "Dexter Dam" & is.na(test$tot.time)]
 
 test$delta.temp<- test$waterTempEnd- test$waterTempCollSite
 test$fish.per.vol<- test$nFish/test$truckVolume
@@ -261,7 +265,7 @@ test$mort<-cbind((test$nLoss + test$nLikelyLoss), test$nFish - (test$nLoss + tes
 
 test<- test[,-20]
 ### now standardize predictors
-stdize<-function(x){(x-mean(x))/sd(x)}
+stdize<-function(x){(x-mean(x,na.rm=TRUE))/sd(x)}
 nnam<-names(test)
 prds<-c("doy", "trip.no", "waterTempCollSite", "truckVolume","loadingTime","haulingTime","tot.time", "nFish", "maxT.C", "cloudcover", "av.day.bet.trp", "av.no.trp.bef", "doy50", "run.size", 
 "DD.first", "DD50",  "Q.first", "Q50", "delta.temp","fish.per.vol")
@@ -278,10 +282,11 @@ for(z in 1:length(prds))
 	{ 
 	test[, which(nnam == prds[z])] <-stdize(test[, which(nnam == prds[z])])
 	}
-
+test<- test[test$waterbody!=-99,]
+test<- test[!(is.na(test$year)),]
+test$waterbody<- factor(test$waterbody)
 ## create two variables to handle overdispersion
-test$site_yr = paste(test$year,test$location,sep = "_")
-test$samp = 1:nrow(test)
+test$site_yr = as.factor(paste(test$year,test$location,sep = "_"))
+test<- test[!is.na(test$mort[,1]),]
+test$samp = as.factor(c(1:nrow(test)))
 
-
-mort
