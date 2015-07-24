@@ -6,7 +6,7 @@ temp.data<-read.csv("./dat/temp_data.csv")
 flow<- read.csv("./dat/discharge_data.csv")
 weath<-read.csv("./dat/weather_dat.csv")
 # trans<-read.csv("./dat/transport_data_jp.csv")
-trans<-read.csv("./dat/TransMorts_29Sept2014.csv")
+trans<-read.csv("./dat/TransMorts_29Sept2014_v2.csv")
 
 
 # truck volumes

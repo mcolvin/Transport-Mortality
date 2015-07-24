@@ -252,9 +252,12 @@ test$av.no.trp.bef<-ifelse(test$location == names(def)[1] & is.nan(test$av.no.tr
 
 
 test$tot.time<- test$loadingTime+test$haulingTime
-def<-tapply(test$loadingTime,test$location, mean, na.rm = T)
-test$tot.time<-ifelse(test$location == names(def)[1] & is.na(test$tot.time) == T,as.numeric(def[1]),test$tot.time)
-test[test$location == "Dexter Dam" & is.na(test$tot.time)]
+def<-tapply(test$tot.time,test$location, mean, na.rm = T)
+test[test$location == "Dexter Dam" & is.na(test$tot.time),]$tot.time<- def[1]
+test[test$location == "Foster Dam" & is.na(test$tot.time),]$tot.time<- def[2]
+
+#test$tot.time<-ifelse(test$location == names(def)[1] & is.na(test$tot.time) == T,as.numeric(def[1]),test$tot.time)
+#test[test$location == "Dexter Dam" & is.na(test$tot.time)]
 
 test$delta.temp<- test$waterTempEnd- test$waterTempCollSite
 test$fish.per.vol<- test$nFish/test$truckVolume

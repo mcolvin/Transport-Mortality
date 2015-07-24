@@ -22,6 +22,7 @@ pred_dat<-expand.grid(samp=levels(test$samp),
 	waterbody=levels(test$waterbody),
 	site_yr=levels(test$site_yr), 
 	trip.no= quantile(test$trip.no,probs=c(0.1,0.5,0.9)),
+	tot.time=quantile(test$trip.no,probs=c(0.1,0.5,0.9)),
 	doy= quantile(test$doy,probs=c(0.1,0.5,0.9)),
 	DD50 = quantile(test$DD50,probs=c(0.1,0.5,0.9)))
 
