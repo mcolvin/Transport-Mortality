@@ -10,3 +10,6 @@ setwd("C:/Users/mcolvin/Documents/projects/PSM/analyses/Transport-Mortality/anal
 	source("./src/6_figures.R")  	
 	source("./src/7_analysis.R")
 	
+
+	figures(1)
+	savePlot("./figures/01_study_area.wmf",type="wmf")

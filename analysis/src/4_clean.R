@@ -4,7 +4,7 @@ flow[flow==-99]<-NA
 temp.data[temp.data==-99]<-NA
 WF.count[WF.count==-99]<-NA
 trap.cnt[trap.cnt==-99]<-NA
-
+truck_volumes[truck_volumes==-99]<-NA
 
 
 ######################## first trap day
@@ -170,8 +170,8 @@ annual.prds<-rbind(annual.prds,dd)   #################################### data y
 annual.prds<- merge(annual.prds,Q.preds, all =T)
 
 ## for now fill in  missing
-annual.prds[,7]<-ifelse(is.na(annual.prds[,7])==T,mean(annual.prds[,7],na.rm = T),annual.prds[,7])
-annual.prds[,8]<-ifelse(is.na(annual.prds[,8])==T,mean(annual.prds[,8],na.rm = T),annual.prds[,8])
+#annual.prds[,7]<-ifelse(is.na(annual.prds[,7])==T,mean(annual.prds[,7],na.rm = T),annual.prds[,7])
+#annual.prds[,8]<-ifelse(is.na(annual.prds[,8])==T,mean(annual.prds[,8],na.rm = T),annual.prds[,8])
 
 ## weather data
 weath$date <- as.Date(as.character(weath$date), format="%m/%d/%Y")
@@ -185,26 +185,25 @@ weath<-weath[,c(1,25,24,26,22)] # get rid of garbage
 trans$date <- as.Date(as.character(trans$date), format="%m/%d/%Y")
 trans$doy<-as.numeric(strftime(trans$date, format = "%j"))
 trans$year<-as.numeric(strftime(trans$date, format = "%Y"))
-
 trans.too<-merge(trans,weath,by=c("location","year","doy"), all.x=TRUE)
-
-truck_volumes$truckVolume<- as.numeric(as.character(truck_volumes$truckVolume))
-trans.too<- merge(trans.too,truck_volumes, by='trucknum',all.x=TRUE)
+#truck_volumes$truckVolume<- as.numeric(as.character(truck_volumes$truckVolume))
+#trans.too<- merge(trans.too,truck_volumes, by='trucknum',all.x=TRUE)
 
 # get mean tank volume to assign to missing values
-def<-tapply(trans.too$truckVolume,trans.too$location, mean, na.rm = T)
-for(z in 1:2)
-	{
-	trans.too$truckVolume<-ifelse(trans.too$location == names(def)[z] & is.na(trans.too$truckVolume) == T,
-		as.numeric(def[z]),trans.too$truckVolume)}
-		
-		
-def<-tapply(trans.too$waterTempRelease,trans.too$location, mean, na.rm = T)
-for(z in 1:2)
-	{
-	trans.too$waterTempRelease<-ifelse(trans.too$location == names(def)[z] & is.na(trans.too$waterTempRelease) == T,
-		as.numeric(def[z]),trans.too$waterTempRelease)
-	}
+#def<-tapply(trans.too$truckVolume,trans.too$location, mean, na.rm = T)
+#for(z in 1:2)
+#	{
+#	trans.too$truckVolume<-ifelse(trans.too$location == names(def)[z] & is.na(trans.too$truckVolume) == T,
+#		as.numeric(def[z]),trans.too$truckVolume)}
+#		
+#		
+#def<-tapply(trans.too$waterTempRelease,trans.too$location, mean, na.rm = T)
+#for(z in 1:2)
+#	{
+#	trans.too$waterTempRelease<-ifelse(trans.too$location == names(def)[z] & is.na(trans.too$waterTempRelease) == T,
+#		as.numeric(def[z]),trans.too$waterTempRelease)
+#	}
+
 ## get rid of some garbage
 #trans.too<-trans.too[,c(1:13,16,19:26)]
 
@@ -220,7 +219,6 @@ trans.too$waterTempRelease<-F2C(trans.too$waterTempRelease)
 
 ## Crazy trapping covariates
 haul.days<-unique(trans.too[,1:3])
-
 trap.days<- trap.cnt
 trap.days$day.bet<-0
 for(z in 2:nrow(trap.days))
@@ -230,7 +228,6 @@ for(z in 2:nrow(trap.days))
 		trap.days$day.bet[z]<- trap.days$doy[z]-trap.days$doy[z-1]
 		}
 	}
-
 trans.too$av.day.bet.trp <-NA
 trans.too$av.no.trp.bef <- NA
 
@@ -240,21 +237,20 @@ for(z in 1:nrow(trans.too)){
   trans.too$av.day.bet.trp[z] <- mean(work$day.bet)
   trans.too$av.no.trp.bef[z] <- mean(work$trap_total)
 }
-
 test<-merge(trans.too,annual.prds,by=c("location","year"))
 
 ### More fill in  missing with aves
-def<-tapply(test$av.day.bet.trp,test$location, mean, na.rm = T)
-test$av.day.bet.trp<-ifelse(test$location == names(def)[1] & is.nan(test$av.day.bet.trp) == T,as.numeric(def[1]),test$av.day.bet.trp)
+#def<-tapply(test$av.day.bet.trp,test$location, mean, na.rm = T)
+#test$av.day.bet.trp<-ifelse(test$location == names(def)[1] & is.nan(test$av.day.bet.trp) == T,as.numeric(def[1]),test$av.day.bet.trp)
 
-def<-tapply(test$av.no.trp.bef,test$location, mean, na.rm = T)
-test$av.no.trp.bef<-ifelse(test$location == names(def)[1] & is.nan(test$av.no.trp.bef) == T,as.numeric(def[1]),test$av.no.trp.bef)
+#def<-tapply(test$av.no.trp.bef,test$location, mean, na.rm = T)
+#test$av.no.trp.bef<-ifelse(test$location == names(def)[1] & is.nan(test$av.no.trp.bef) == T,as.numeric(def[1]),test$av.no.trp.bef)
 
 
 test$tot.time<- test$loadingTime+test$haulingTime
-def<-tapply(test$tot.time,test$location, mean, na.rm = T)
-test[test$location == "Dexter Dam" & is.na(test$tot.time),]$tot.time<- def[1]
-test[test$location == "Foster Dam" & is.na(test$tot.time),]$tot.time<- def[2]
+#def<-tapply(test$tot.time,test$location, mean, na.rm = T)
+#test[test$location == "Dexter Dam" & is.na(test$tot.time),]$tot.time<- def[1]
+#test[test$location == "Foster Dam" & is.na(test$tot.time),]$tot.time<- def[2]
 
 #test$tot.time<-ifelse(test$location == names(def)[1] & is.na(test$tot.time) == T,as.numeric(def[1]),test$tot.time)
 #test[test$location == "Dexter Dam" & is.na(test$tot.time)]
@@ -262,34 +258,44 @@ test[test$location == "Foster Dam" & is.na(test$tot.time),]$tot.time<- def[2]
 test$delta.temp<- test$waterTempEnd- test$waterTempCollSite
 test$fish.per.vol<- test$nFish/test$truckVolume
 
-
 ## create response variable DO THIS BEFORE STANDARDIZING DATA!!!
 test$mort<-cbind((test$nLoss + test$nLikelyLoss), test$nFish - (test$nLoss + test$nLikelyLoss))
 
-test<- test[,-20]
+
+
 ### now standardize predictors
-stdize<-function(x){(x-mean(x,na.rm=TRUE))/sd(x)}
-nnam<-names(test)
-prds<-c("doy", "trip.no", "waterTempCollSite", "truckVolume","loadingTime","haulingTime","tot.time", "nFish", "maxT.C", "cloudcover", "av.day.bet.trp", "av.no.trp.bef", "doy50", "run.size", 
-"DD.first", "DD50",  "Q.first", "Q50", "delta.temp","fish.per.vol")
-
-xxx<- NULL
-for(z in 1:length(prds)){
-  zz<- test[, which(nnam == prds[z])]
-  xxx<-rbind(xxx,c(round(mean(zz),1),round(sd(zz),2),round(min(zz)),round(max(zz))))
-}
-
-parm.summary<-cbind(as.data.frame(prds),xxx)
-
-for(z in 1:length(prds))
-	{ 
-	test[, which(nnam == prds[z])] <-stdize(test[, which(nnam == prds[z])])
+prds<-c("location","waterbody","doy", "year","mort","trip.no", "waterTempCollSite", "truckVolume",
+	"loadingTime","haulingTime","tot.time", "nFish", "maxT.C", 
+	"cloudcover", "av.day.bet.trp", "av.no.trp.bef", "doy50", "run.size", 
+	"DD.first", "DD50",  "Q.first", "Q50", "delta.temp","fish.per.vol")
+dat<- test[,match(prds,names(test))]
+dat_unstd<- dat
+indx<- match(prds[-c(1,2,4,5)],names(dat))# columns to standardize
+for(i in indx)
+	{
+	mn<- mean(dat[,i],na.rm=TRUE)
+	sdd<- sd(dat[,i],na.rm=TRUE)
+	dat[,i] <-ifelse(is.na(dat[,i]),0,(dat[,i]-mn)/sdd)
+	
 	}
-test<- test[test$waterbody!=-99,]
-test<- test[!(is.na(test$year)),]
-test$waterbody<- factor(test$waterbody)
+
+	
+	
+	
+dat<- dat[dat$waterbody!=-99,]
+dat<- dat[!(is.na(dat$year)),]
+dat$waterbody<- factor(dat$waterbody)
 ## create two variables to handle overdispersion
-test$site_yr = as.factor(paste(test$year,test$location,sep = "_"))
-test<- test[!is.na(test$mort[,1]),]
-test$samp = as.factor(c(1:nrow(test)))
+dat$site_yr = as.factor(paste(dat$year,dat$location,sep = "_"))
+dat<- dat[!is.na(dat$mort[,1]),]
+dat$samp = as.factor(c(1:nrow(dat)))
+
+
+dat_unstd<- dat_unstd[dat_unstd$waterbody!=-99,]
+dat_unstd<- dat_unstd[!(is.na(dat_unstd$year)),]
+dat_unstd$waterbody<- factor(dat_unstd$waterbody)
+## create two variables to handle overdispersion
+dat_unstd$site_yr = as.factor(paste(dat_unstd$year,dat_unstd$location,sep = "_"))
+dat_unstd<- dat_unstd[!is.na(dat_unstd$mort[,1]),]
+dat_unstd$samp = as.factor(c(1:nrow(dat_unstd)))
 

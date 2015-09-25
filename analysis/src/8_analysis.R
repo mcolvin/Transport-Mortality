@@ -1,41 +1,76 @@
 
+
+
+
+
+
 # Error structure
 # best with Wi 0.8948 (1|site_yr)+(1|samp)+(1|waterbody)
 # second best Wi 0.0468 (1|samp)+(1|driver)+(1|waterbody)
 
 
-test<- test[,match(c('samp','waterbody','site_yr','trip.no','doy','DD50','mort'),names(test))]
-## Best model
-outz<-glmer(mort~(1|samp)+ (1|waterbody) +(1|site_yr), 
-	data = test,
+outz<-glmer(mort~(1|samp)+ (1|waterbody) +(1|site_yr) + 
+	fish.per.vol, 
+	data = dat,
 	family=binomial,
 	control=glmerControl(optimizer="bobyqa"))
+AICc(outz)
 	
+	fuck<- AIC(outz)
+outz2<-glmer(mort~(1|samp)+ (1|waterbody) +(1|site_yr) + 
+	tot.time, 
+	data = dat,
+	family=binomial,
+	control=glmerControl(optimizer="bobyqa"))	
+	fuck<- c(fuck,AIC(outz2))
+	
+	summary(outz)
+	summary(outz2)
 
-outz<-glmer(mort~(1|samp)+ (1|waterbody) +(1|site_yr)+ trip.no+ doy+DD50 , 
-	data = test,
+
+	
+	
+##### Best model
+outz<-glmer(mort~(1|samp)+ (1|waterbody) +(1|site_yr) + 
+	trip.no + tot.time + doy + I(doy^2) + DD50, 
+	data = dat,
 	family=binomial,
 	control=glmerControl(optimizer="bobyqa"))
-ranef(outz)
+summary(outz)
+	confint(outz)
+# EVALUATE RANDOM EFFECTS
+re<-ranef(outz)
+hist(re$site_yr[[1]])
+hist(re$waterbody[[1]])
+hist(re$samp[[1]])
 
 pred_dat<-expand.grid(samp=levels(test$samp),
 	waterbody=levels(test$waterbody),
 	site_yr=levels(test$site_yr), 
-	trip.no= quantile(test$trip.no,probs=c(0.1,0.5,0.9)),
-	tot.time=quantile(test$trip.no,probs=c(0.1,0.5,0.9)),
-	doy= quantile(test$doy,probs=c(0.1,0.5,0.9)),
-	DD50 = quantile(test$DD50,probs=c(0.1,0.5,0.9)))
+	trip.no= quantile(test$trip.no,probs=c(0.5)),
+	tot.time=seq(min(test$trip.no),max(test$trip.no),0.5),
+	doy= quantile(test$doy,probs=c(0.5)),
+	DD50 = quantile(test$DD50,probs=c(0.5)))
 
 # EMPERICAL BAYES PREDICTIONS (AT LEAST I THINK SO...)
-pred_dat$pred<- predict(outz,pred_dat, re.form=NULL,type="response")
+pred_dat$pred<- predict(outz,pred_dat, re.form=NULL,
+	type="response")
 
-
+pred_dat<-expand.grid(#samp=levels(test$samp),
+	waterbody=levels(test$waterbody),
+	#site_yr=levels(test$site_yr), 
+	trip.no= quantile(test$trip.no,probs=c(0.5)),
+	tot.time=seq(min(test$trip.no),max(test$trip.no),0.5),
+	doy= quantile(test$doy,probs=c(0.5)),
+	DD50 = quantile(test$DD50,probs=c(0.5)))
+pred_dat$pred<- predict(outz,pred_dat, re.form=~(1|waterbody),
+	type="response")	
 	
-	##### Best model
-outz<-glmer(mort~(1|samp)+ (1|waterbody) +(1|site_yr) + trip.no + tot.time + doy + I(doy^2) + DD50, 
-	data = test,
-	family=binomial,
-	control=glmerControl(optimizer="bobyqa"))
+	
+library(lattice)
+xyplot(pred~tot.time,pred_dat, group=waterbody,type="l")
+	
+
 summary(outz)
 qqnorm(resid(outz))
 
