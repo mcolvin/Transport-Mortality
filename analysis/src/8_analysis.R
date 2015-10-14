@@ -1,12 +1,10 @@
 
 
 
+tables(1) # AIC model selection
 
 
 
-# Error structure
-# best with Wi 0.8948 (1|site_yr)+(1|samp)+(1|waterbody)
-# second best Wi 0.0468 (1|samp)+(1|driver)+(1|waterbody)
 
 
 outz<-glmer(mort~(1|samp)+ (1|waterbody) +(1|site_yr) + 

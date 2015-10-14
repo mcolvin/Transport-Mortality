@@ -9,14 +9,15 @@ tables<- function(n){
 		tmp<- tmp[order(tmp$dAICc, decreasing=FALSE),]
 		tmp$lik<- exp(-0.5*tmp$dAICc)
 		tmp$w<- tmp$lik/sum(tmp$lik)
+		return(tmp)
 		}
 
 
-if(n==1)
+if(n==111)
 	{
 	# TABLE OF MAXIMUM DENSITIES TRANSPORTED BY 
 	# LOCATION 
-	aggregate(fish.per.vol~location,test,max)
+	aggregate(fish_per_vol~location,test,max)
 	}
 if(n==2)
 	{
