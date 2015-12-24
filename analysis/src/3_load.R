@@ -5,9 +5,14 @@ WF_count<-read.csv("./dat/will_falls_counts.csv")
 temp_data<-read.csv("./dat/temp_data.csv")
 flow<- read.csv("./dat/discharge_data.csv")
 weath<-read.csv("./dat/weather_dat.csv")
-# trans<-read.csv("./dat/transport_data_jp.csv")
- trans<-read.csv("./dat/transport_data_new.csv",skip=3) # dexter 2013
+#trans<-read.csv("./dat/transport_data_jp.csv")
+trans<-read.csv("./dat/transport_data_new.csv",skip=3) # dexter 2013
 #trans<-read.csv("./dat/transport_data.csv",skip=3) #no dexter 2013, this jives more with jp's analysis
+#pred_dat<-fread("./output/risk.csv")
+xxx<- read.csv("./output/risk_table.csv")
+
+
+
 
 
 

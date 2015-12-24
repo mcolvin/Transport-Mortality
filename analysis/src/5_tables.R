@@ -1,14 +1,21 @@
-tables<- function(n){
+tables<- function(n,model_fits=NULL){
+	if(n==2)
+		{# TABLE OF MEANS, STD. DEVS, MINIMUMS, AND MAXIMUMS
+		
+		}
 	if(n==1)
 		{# TABLE OF MODEL SELECTION 
-		tmp<- as.data.frame(t(sapply(1:length(out), function(x) out[[x]]$AICtab)))
-		tmp$model<- unlist((sapply(1:length(out), function(x) out[[x]]$call$formula)))
+		
+		tmp<-as.data.frame(t(sapply(1:length(model_fits), function(x) summary(model_fits[[x]])$AICtab)))
+		tmp$model<- sapply(1:length(model_fits), function(x) paste(as.character(summary(model_fits[[x]])$call$formula),collapse="~"))
 		tmp$k<- nrow(dat)-tmp$df.resid
 		tmp$AICc<- tmp$AIC+((2*tmp$k*(tmp$k+1))/(nrow(dat)-tmp$k-1))
 		tmp$dAICc<- tmp$AICc-min(tmp$AICc)
 		tmp<- tmp[order(tmp$dAICc, decreasing=FALSE),]
 		tmp$lik<- exp(-0.5*tmp$dAICc)
 		tmp$w<- tmp$lik/sum(tmp$lik)
+		tmp$cum_w<- cumsum(tmp$w)
+		tmp<- as.data.table(tmp)
 		return(tmp)
 		}
 
@@ -31,17 +38,15 @@ if(n==3)
 	{
 	# CALCUALTE SUMMARY STATISTICS FOR PREDICTORS
 	nnam<-names(test)
-prds<-c("doy", "trip.no", "waterTempCollSite", "truckVolume","loadingTime","haulingTime","tot.time", "nFish", "maxT.C", "cloudcover", "av.day.bet.trp", "av.no.trp.bef", "doy50", "run.size", 
-"DD.first", "DD50",  "Q.first", "Q50", "delta.temp","fish.per.vol")
-
-
-xxx<- NULL
-for(z in 1:length(prds)){
-  zz<- test[, which(nnam == prds[z])]
-  xxx<-rbind(xxx,c(round(mean(zz,na.rm=TRUE),1),round(sd(zz,na.rm=TRUE),2),round(min(zz,na.rm=TRUE)),round(max(zz,na.rm=TRUE))))
-parm.summary<-cbind(as.data.frame(prds),xxx)
-
-  }
+	prds<-c("doy", "trip.no", "waterTempCollSite", "truckVolume","loadingTime","haulingTime","tot.time", "nFish", "maxT.C", "cloudcover", "av.day.bet.trp", "av.no.trp.bef", "doy50", "run.size", 
+		"DD.first", "DD50",  "Q.first", "Q50", "delta.temp","fish.per.vol")
+	xxx<- NULL
+	for(z in 1:length(prds))
+		{
+		zz<- test[, which(nnam == prds[z])]
+		xxx<-rbind(xxx,c(round(mean(zz,na.rm=TRUE),1),round(sd(zz,na.rm=TRUE),2),round(min(zz,na.rm=TRUE)),round(max(zz,na.rm=TRUE))))
+		parm.summary<-cbind(as.data.frame(prds),xxx)
+		}
 
 	}
 

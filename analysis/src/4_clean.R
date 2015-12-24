@@ -119,7 +119,7 @@ trans<- merge(trans,annual_values, by=c("location","year"))
 
 trans<- merge(trans, trap_cnt[,c("location","year","doy","trap_total","day_bet")],by=c("location","year","doy"))
 ### now standardize predictors
-prds<-c("location","waterbody", "year","mort", #THINGS NOT TO MESS WITH  
+prds<-c("location","waterbody", "year","mort",	 #THINGS NOT TO MESS WITH  
 	
 	"doy50",# in order from table 1
 	"dd_01",
@@ -130,13 +130,13 @@ prds<-c("location","waterbody", "year","mort", #THINGS NOT TO MESS WITH
 	"waterTempCollSite",
 	"delta_temp",
 	"doy",# doy^2
+	"trip_no",
 	"loadingTime",
 	"tot_time",
 	"fish_per_vol",
 	"trap_total",
 	"day_bet",
 	"truckVolume",
-	"trip_no",
 	"maxT_C",
 	"cloudcover")
 	
@@ -151,7 +151,7 @@ for(i in indx)
 	dat[,i] <-ifelse(is.na(dat[,i]),0,(dat[,i]-mn)/sdd)
 	}
 dat$doy_sqrd<- dat$doy^2
-	
+
 	
 	
 dat<- dat[dat$waterbody!=-99,]
