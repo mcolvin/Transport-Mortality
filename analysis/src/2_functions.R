@@ -1,0 +1,7 @@
+mort_risk<- function(x,nn,p)
+	{# FUNCTION THAT RETURNS THE PROBABILITY OF 
+	#  A MORTALITY GIVEN THE NUMBER OF FISH IN 
+	# THE TRANSPORT AND PREDICTED MORTALITY PROBABILITY
+	x<-1-pbinom(0,x[nn],prob=x[p])
+	return(x)
+	}

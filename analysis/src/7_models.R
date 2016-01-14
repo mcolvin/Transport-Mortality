@@ -28,7 +28,7 @@ out<-list()
 vars<- c("tot_time","doy+I(doy^2)","trip_no","dd_50",
 	"fish_per_vol","1","waterTempCollSite","cloudcover",
 	"maxT_C","dd_01","Q_50","doy50","run_size","delta_temp","Q_01",
-	"day_bet")
+	"day_bet","trap_total")
 	
 	#"tot_time*location","doy*location+I(doy^2)*location","trip_no*location","dd_50*location",
 	#"fish_per_vol*location","waterTempCollSite*location","cloudcover*location",

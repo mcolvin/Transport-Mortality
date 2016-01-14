@@ -62,7 +62,7 @@ for(i in 1:nrow(annual_values))
 	tdat$temp<-ifelse(is.na(tdat$temp), fill(tdat$doy),tdat$temp)
 	annual_values$dd_50[i]<- sum(tdat$temp)
 	
-# discharge
+	# discharge
 	tdat<- subset(flow, doy%in% c(annual_values$doy01[i]:annual_values$trap01[i]) & 
 		location==as.character(annual_values$location[i]))
 	fill<- approxfun(tdat$doy,tdat$discharge)	
@@ -139,10 +139,10 @@ prds<-c("location","waterbody", "year","mort",	 #THINGS NOT TO MESS WITH
 	"truckVolume",
 	"maxT_C",
 	"cloudcover")
-	
+dat_unstd<- trans	
 prds%in%names(trans)
 dat<- trans[,match(prds,names(trans))]
-dat_unstd<- dat
+
 indx<- match(prds[-c(1:4)],names(dat))# columns to standardize
 for(i in indx)
 	{
@@ -151,8 +151,6 @@ for(i in indx)
 	dat[,i] <-ifelse(is.na(dat[,i]),0,(dat[,i]-mn)/sdd)
 	}
 dat$doy_sqrd<- dat$doy^2
-
-	
 	
 dat<- dat[dat$waterbody!=-99,]
 dat<- dat[!(is.na(dat$year)),]

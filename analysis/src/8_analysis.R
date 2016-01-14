@@ -6,27 +6,78 @@
 	
 	
 	# RANDOM EFFECS MODEL SELECTION
-	grr<- tables(1,model_fits=out_re)
+	grr<- tables(3,model_fits=out_re)
 	grr
 	summary(out_re[[4]])
 	
 	
 	## FULL MODEL SELECTION
-	grr<- tables(1,model_fits=out_all)
+	grr<- tables(3,model_fits=out_all)
 	#grr<- tables(1,model_fits=out_dexter)
-	str(grr	)
+	summary(out_all[[5]])$coefficients[,1]
+	summary(out_all[[1]])$coefficients[,1]
+	summary(out_all[[2]])$coefficients[,1]
+
+	
+	
 	write.csv(as.data.table(grr),"./output/mod-sel.csv")
 	## MODEL SELECTION TABLE 
 	###  FOR ALL DATA
 	grr<- tables(1,model_fits=out_all)
 	
 	
-	fin<-glmer(mort ~ fish_per_vol+tot_time+doy + I(doy^2) + (1 | samp), 
+	
+	# THIS IS THE FINAL MODEL
+	fin<-glmer(mort ~ fish_per_vol+tot_time+doy + I(doy^2) + trap_total+ (1 | samp), 
 		data = dat,
 		family=binomial,
 		control=glmerControl(optimizer="bobyqa"))
+		
+		
+		
+		
+		
+	# PREDICTION 
+	
+	
+	re<-as.vector(unlist(ranef(fin)))
+		hist(re)
+	dat_unstd$re<- re
+	plot(re~trip_no,dat_unstd)
+
+		
 	confint(fin)
 	summary(fin)
+	dat$p_hat<- plogis(predict(fin, dat,re.form=~0))
+	dat$p_xx<- fitted(fin)
+	dat$p<- dat$mort[,1]/dat$mort[,2]
+	plot(p~p_hat,dat)
+	plot(p~p_xx,dat)
+	hist(ranef(fin))
+	
+	
+	
+	
+
+### For HL GOF test below
+p.mort<-test$mort[,1]/rowSums(test$mort)
+aggregate(p.mort,by =test[c("year","location")], summary)
+for(gg in 3:30){
+	hosmerlem <-function (y, yhat, g) 
+		{
+		cutyhat <- cut(yhat, breaks = quantile(yhat, probs = seq(0, 1, 1/g)), include.lowest = T)
+        obs <- xtabs(cbind(1 - y, y) ~ cutyhat)
+        expect <- xtabs(cbind(1 - yhat, yhat) ~ cutyhat)
+        chisq <- sum((obs - expect)^2/expect)
+        P <- 1 - pchisq(chisq, g - 2)
+        c("X^2" = chisq, Df = g - 2, "P(>Chi)" = P)
+		}
+print(hosmerlem(test$mort[,1]/rowSums(test$mort), fitted(outz),gg))
+}
+
+
+	
+	
 	
 	### PREDICTIONS	
 	#### UNCONTROLABLE: doy AND Q_01
@@ -45,49 +96,15 @@
 		
 		)		
 	
-	
-	
-	# 100 to 300 is good for doy
-	
-	## REWARD FUNCTION: PROBABILITY OF AT LEAST 1 MORTALITY
-	xxx<-expand.grid(p_mort= c(seq(0,0.05,0.0001),seq(0.05,1,0.025)),
-		n=seq(2,400,1))
-	xxx$risk_val<- 0
-	pb <- txtProgressBar(min = 1, max = nrow(xxx), style = 3)
-	for(i in 1:(nrow(xxx)))
-		{
-		vals<- rbinom(10000,xxx$n[i], xxx$p_mort[i])
-		xxx$n_morts[i]<-length(vals[vals>0])
-		#xxx$risk_val[i]<-  length(vals[vals>0])/length(vals)
-		setTxtProgressBar(pb, i)
-		}
-	xxx$risk_val<- xxx$n_mort/10000
-	plot(risk_val~n,xxx, subset=p_mort==0.00)
-	write.csv(xxx, "./output/risk_table.csv")
-	## END REWARD FUNCTION
-	
-
-	risk_table<-dcast(xxx,p_mort~n,value.var="risk_val",mean)
-
 	pred_dat<- expand.grid(fish_per_vol=seq(-3,3,by=0.25),
 		tot_time=seq(-3,3,by=0.25),
 		doy=seq(-3,3,by=0.25),
 		n=c(10,25,50,75,100,200,300))	
 	pred_dat$p_hat<- plogis(predict(fin, pred_dat, re.form=NA))
-	for(i in 1:nrow(pred_dat))
-		{
-		nn<- pred_dat$n[i]
-		tmp<- subset(xxx,n==nn)
-		risk<- approxfun(tmp$p_mort, tmp$risk_val,rule=2)
-		pred_dat$risk[i]<- risk(pred_dat$p_hat[i])
-		}
-	
-	write.csv(pred_dat,"./output/pred_dat.csv")
-	
-	pred_dat<- read.csv("./output/pred_dat.csv")
+	pred_dat$risk<-apply(pred_dat,1, mort_risk, nn="n" , p="p_hat")
 	# optimal loading rows: DOY, truck volume, 
 	
-	
+	# what about relative risk as risk value/value at lowest density and time... for each doy...
 	# WHAT LOADING TIME GIVEN DENSITY
 	
 	
@@ -98,9 +115,6 @@
 	
 	dcast(xx, doy~n, value.var="val")# WORKS, 3 FOR MOST, UNTIL MIDSEASON FOR AVERAGE DENSITIES
 
-	pred_dat$risk_bin<- ifelse
-	
-	
 	
 	
 	
@@ -118,15 +132,41 @@
 
 	
 	###  FOR FOSTER DATA
-	grr<- tables(1,model_fits=out_foster)	
+	grr<- tables(3,model_fits=out_foster)	
 	
 	
 	# FOR DEXTER	
-	grr<- tables(1,model_fits=out_dexter)
+	grr<- tables(3,model_fits=out_dexter)
 	grr$index<- rownames(grr)
 	pred_dat<- expand.grid(fish_per_vol=seq(-2,3,0.1))
 	
-	ddply(dat_dexter,summarize
+
+	
+	out_dexter[[5]]
+
+	fin<-glmer(mort ~ fish_per_vol,# + (1 | samp), 
+		data = dat_dexter,
+		family=binomial,
+		control=glmerControl(optimizer="bobyqa"))
+	
+	re<-as.vector(unlist(ranef(fin)))
+		hist(re)
+	dat_dexter$re<- re
+	plot(re~trip_no,dat_dexter)
+	fin<- glm(mort~fish_per_vol, dat_dexter, family="binomial")
+	dat_dexter$p_hat<- plogis(predict(fin, dat_dexter,re.form=~0))
+	dat_dexter$fit<- fitted(fin)
+	dat_dexter$p<- dat_dexter$mort[,1]/dat_dexter$mort[,2]
+	plot(p~p_hat,dat_dexter)
+	plot(p~fit,dat_dexter)
+	hist(ranef(fin))
+	
+	
+	x<- rbinom(100,40,0.4)
+	x2<- rep(40,100)-x
+	fit<- glm(cbind(x,x2)~1, family="binomial")
+	
+	
 	
 	vars<- c("tot_time","doy","trip_no","dd_50",
 	"fish_per_vol","waterTempCollSite","cloudcover",
@@ -172,31 +212,6 @@
 	apply(pp[,-1],1,which.min)
 	
 	
-	# GET PROBABILITY OF 1 OR MORE MORTS 
-	xxx<-expand.grid(p=seq(0,0.2,0.0001),n=c(10,25,50,75,100,150,200,250,300,400,500))
-	xxx$out<-0
-	sim_n<- 100000
-	for(i in 1:nrow(xxx))
-		{
-		h<- rbinom(sim_n,xxx$n[i],xxx$p[i])
-		xxx$out[i]<-length(h[h>0])/sim_n
-		}
-	risk<- function(p,n)
-		{
-		risk_val<- approxfun(xxx[xxx$n==n,]$p,xxx[xxx$n==n,]$out,rule=2)
-		return(risk_val(p))
-		}
-	# assign p of 1 or more mortality
-	pred_dat$risk_10<- risk(p=bins$p_hat,n=10)
-	
-
-
-
-
-
-
-
-
 
 	
 	
@@ -378,24 +393,5 @@ xyplot(pred~tot.time,pred_dat, group=waterbody,type="l")
 summary(outz)
 qqnorm(resid(outz))
 
-
-
-
-### For HL GOF test below
-p.mort<-test$mort[,1]/rowSums(test$mort)
-aggregate(p.mort,by =test[c("year","location")], summary)
-for(gg in 3:30){
-	hosmerlem <-
-	function (y, yhat, g) 
-		{
-		cutyhat <- cut(yhat, breaks = quantile(yhat, probs = seq(0, 1, 1/g)), include.lowest = T)
-        obs <- xtabs(cbind(1 - y, y) ~ cutyhat)
-        expect <- xtabs(cbind(1 - yhat, yhat) ~ cutyhat)
-        chisq <- sum((obs - expect)^2/expect)
-        P <- 1 - pchisq(chisq, g - 2)
-        c("X^2" = chisq, Df = g - 2, "P(>Chi)" = P)
-		}
-print(hosmerlem(test$mort[,1]/rowSums(test$mort), fitted(outz),gg))
-}
 
 
