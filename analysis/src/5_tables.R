@@ -46,7 +46,9 @@ tables<- function(n,model_fits=NULL){
 	if(n==3)
 		{# TABLE OF MODEL SELECTION 
 		tmp<-as.data.frame(t(sapply(1:length(model_fits), function(x) summary(model_fits[[x]])$AICtab)))
-		tmp$model<- sapply(1:length(model_fits), function(x) paste(as.character(summary(model_fits[[x]])$call$formula),collapse="~"))
+		tmp$model<- sapply(1:length(model_fits), function(x){
+			tmp<- paste(as.character(summary(model_fits[[x]])$call$formula),collapse="~")
+			return(substr(tmp,2,nchar(tmp)))})
 		tmp$model_indx<- c(1:length(model_fits))
 		tmp$k<- nrow(dat)-tmp$df.resid
 		tmp$AICc<- tmp$AIC+((2*tmp$k*(tmp$k+1))/(nrow(dat)-tmp$k-1))
@@ -78,7 +80,8 @@ tables<- function(n,model_fits=NULL){
 	return(parameterEstimates)
 	}
 	if(n=="a")
-		{ # TABLE OF PREDICTED VALUES FOR THE SUITE OF VARIABLES INCLUDED IN FINAL MODEL
+		{ 
+		# TABLE OF PREDICTED VALUES FOR THE SUITE OF VARIABLES INCLUDED IN FINAL MODEL
 		fin<-glmer(mort ~ fish_per_vol+tot_time+doy + 
 			I(doy^2)+ trap_total + (1 | samp), 
 			data = dat,
@@ -116,12 +119,150 @@ tables<- function(n,model_fits=NULL){
 		}
 	if(n==5)
 		{
+		# TABLE OF PREDICTIONS FOR FOSTER AND DEXTER RUN AS SEPARATE
+		grr<- tables(3,model_fits=out_foster)	
+		n<-40000	# do not set above 50K, it throws an erro in tcrossprod	
+		y_hat<- y_lo<- y_hi<- matrix(0, n,nrow(grr))
+		pdat<- data.frame(
+			doy=runif(n,-2,2),
+			trap_total=runif(n,-2,2),
+			tot_time=runif(n,-2,2),# need to do sample xxx with reasonable values
+			waterTempCollSite=runif(n,-2,2),
+			trip_no=runif(n,-2,2),
+			cloudcover=runif(n,-2,2),
+			fish_per_vol=runif(n,-2,2),
+			maxT_C=runif(n,-2,2),
+			dd_01=runif(n,-2,2),
+			Q_50=runif(n,-2,2),
+			doy50=runif(n,-2,2),
+			dd_50=runif(n,-2,2),
+			run_size=runif(n,-2,2),
+			delta_temp=runif(n,-2,2),
+			Q_01=runif(n,-2,2),
+			day_bet=runif(n,-2,2),				
+			volume=sample(c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),n,replace=TRUE))
+
+		for(i in 1:nrow(grr))
+			{
+			mod<- grr$model_indx[i]
+			mm<- paste("~",paste(names(fixef(out_foster[[mod]]))[-1],collapse="+"))
+			mm<- model.matrix(as.formula(mm),pdat)	
+			y_hat[,i]<- mm%*%fixef(out_foster[[mod]])*grr$w[i]				
+			pvar1 <- diag(mm %*% tcrossprod(vcov(out_foster[[mod]]),mm))
+			tvar1 <- pvar1+VarCorr(out_foster[[mod]])$samp[1] 
+
+			# OTHER BITS TO ADD TO PREDICTED DATASET
+			y_lo[,i]<- y_hat[,i]-1.96*(sqrt(tvar1))*grr$w[i]
+			y_hi[,i]<- y_hat[,i]+1.96*(sqrt(tvar1))*grr$w[i]	
+			}
+			
+		pdat$y_hat<-apply(y_hat,1,sum)
+		pdat$y_hi<- apply(y_hi,1,sum)
+		pdat$y_lo<- apply(y_lo,1,sum)
+
+		pdat$p_hat<-plogis(pdat$y_hat)
+		pdat$p_hi<- plogis(pdat$y_hi)
+		pdat$p_lo<- plogis(pdat$y_lo)
+		}
+		
+	if(n==6)
+		{
+		# TABLE OF PREDICTIONS FOR FOSTER AND DEXTER RUN AS SEPARATE
+		grr<- tables(3,model_fits=out_dexter)	
+		n<-40000	# do not set above 50K, it throws an error in tcrossprod	
+		y_hat<- y_lo<- y_hi<- matrix(0, n,nrow(grr))
+		pdat<- data.frame(
+			doy=runif(n,-2,2),
+			trap_total=runif(n,-2,2),
+			tot_time=runif(n,-2,2),# need to do sample xxx with reasonable values
+			waterTempCollSite=runif(n,-2,2),
+			trip_no=runif(n,-2,2),
+			cloudcover=runif(n,-2,2),
+			fish_per_vol=runif(n,-2,2),
+			maxT_C=runif(n,-2,2),
+			dd_01=runif(n,-2,2),
+			Q_50=runif(n,-2,2),
+			doy50=runif(n,-2,2),
+			dd_50=runif(n,-2,2),
+			run_size=runif(n,-2,2),
+			delta_temp=runif(n,-2,2),
+			Q_01=runif(n,-2,2),
+			day_bet=runif(n,-2,2),				
+			volume=sample(c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),n,replace=TRUE))
+
+		for(i in 1:nrow(grr))
+			{
+			mod<- grr$model_indx[i]
+			mm<- paste("~",paste(names(fixef(out_dexter[[mod]]))[-1],collapse="+"))
+			mm<- model.matrix(as.formula(mm),pdat)	
+			y_hat[,i]<- mm%*%fixef(out_dexter[[mod]])*grr$w[i]				
+			pvar1 <- diag(mm %*% tcrossprod(vcov(out_dexter[[mod]]),mm))
+			tvar1 <- pvar1+VarCorr(out_dexter[[mod]])$samp[1] 
+
+			# OTHER BITS TO ADD TO PREDICTED DATASET
+			y_lo[,i]<- y_hat[,i]-1.96*(sqrt(tvar1))*grr$w[i]
+			y_hi[,i]<- y_hat[,i]+1.96*(sqrt(tvar1))*grr$w[i]	
+			}
+			
+		pdat$y_hat<-apply(y_hat,1,sum)
+		pdat$y_hi<- apply(y_hi,1,sum)
+		pdat$y_lo<- apply(y_lo,1,sum)
+
+		pdat$p_hat<-plogis(pdat$y_hat)
+		pdat$p_hi<- plogis(pdat$y_hi)
+		pdat$p_lo<- plogis(pdat$y_lo)
+		}		
+	
+	if(n==7)
+		{
+		# TABLE GENERATING SIMULATED VALUES AS MORTALITIES TO DEMONSTRATE 
+		# WHAT CAN BE LEARNED
+				# TABLE OF PREDICTIONS FOR FOSTER AND DEXTER RUN AS SEPARATE
+		grr<- tables(3,model_fits=out_dexter)	
+		n<-10	# do not set above 50K, it throws an error in tcrossprod	
+		
+		pdat<- data.frame(
+			doy=runif(n,-2,2),
+			trap_total=runif(n,-2,2),
+			tot_time=runif(n,-2,2),# need to do sample xxx with reasonable values
+			waterTempCollSite=runif(n,-2,2),
+			trip_no=runif(n,-2,2),
+			cloudcover=runif(n,-2,2),
+			fish_per_vol=runif(n,-2,2),
+			maxT_C=runif(n,-2,2),
+			dd_01=runif(n,-2,2),
+			Q_50=runif(n,-2,2),
+			doy50=runif(n,-2,2),
+			dd_50=runif(n,-2,2),
+			run_size=runif(n,-2,2),
+			delta_temp=runif(n,-2,2),
+			Q_01=runif(n,-2,2),
+			day_bet=runif(n,-2,2),				
+			volume=sample(c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),n,replace=TRUE))
+		y_hat<- matrix(0, n,nrow(grr))
+		for(i in 1:nrow(grr))
+			{
+			mod<- grr$model_indx[i]
+			mm<- paste("~",paste(names(fixef(out_dexter[[mod]]))[-1],collapse="+"))
+			mm<- model.matrix(as.formula(mm),pdat)	
+			y_hat[,i]<- (mm%*%fixef(out_dexter[[mod]])+rnorm(n,0,sqrt(VarCorr(out_dexter[[mod]])$samp[[1]])))#*grr$w[i]				
+			}
+		pdat$y_hat<-y_hat %*% grr$w	
+		pdat$p_hat<-plogis(pdat$y_hat)
+		pdat$morts<- rbinom(n,100,pdat$p_hat)
+		}
+	trans_grey<- rgb(120,120,120,alpha=10,maxColorValue=255)# make grey color with some transparency
+	plot(morts~doy,pdat,pch=19,col=trans_grey)
+	
+	if(n==7)
+	{
+	# UTILITIY TABLE
 		tmp<- tables('a')
 		tmp$risk_score<- (pdat$risk-max(pdat$risk))/(0-max(pdat$risk))
 		n_fish_in_trap<- c(50,100,200,300,400,500,600,700,800,900,1000)
 		tmp$n_trips<- 500/(tmp$volume*tmp$fish_per_vol)
 		fish_per_min<- 1
-		
+	}	
 		
 		
 		
