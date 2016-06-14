@@ -1,0 +1,22 @@
+# Tables
+
+```{r,echo=FALSE}
+setwd("C:/Users/mcolvin/Documents/projects/MS-Pallids/analysis")
+	source("./src/1_global.R")  	
+	source("./src/2_functions.R")         
+	source("./src/3_load.R")     
+  	source("./src/4_clean.R" )
+ 	source("./src/5_tables.R") 
+	source("./src/6_figures.R") 
+	source("./src/7_model.R")
+```
+
+
+Table 1. Deviance information criteria (DIC) values and model 
+selection results for candidate habitat selection models for 
+Pallid Sturgeon captures in the Lower Mississippi River. 
+
+```{r, echo=FALSE}
+tbl1<- tables(1)
+kable(tbl1,digits=2,caption = NULL,row.names=FALSE)
+```

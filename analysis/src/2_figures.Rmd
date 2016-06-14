@@ -1,0 +1,80 @@
+# Figures
+
+```{r,echo=FALSE}
+setwd("C:/Users/mcolvin/Documents/projects/MS-Pallids/analysis")
+	source("./src/1_global.R")  	
+	source("./src/2_functions.R")         
+	source("./src/3_load.R")     
+  	source("./src/4_clean.R" )
+ 	source("./src/5_tables.R") 
+	source("./src/6_figures.R") 
+	source("./src/7_model.R")
+```
+
+
+
+```{r, echo=FALSE,dpi=200,fig.cap=NULL}
+figures(1)
+```
+Figure 1.  Lower Mississippi River tempeature and 
+stage over the study period for Catfish Point river segement.
+
+
+
+```{r, echo=FALSE,dpi=200,fig.cap=NULL}
+figures(2)
+```
+Figure 2.  Lower Mississippi River tempeature and 
+stage over the study period for Tara to Vicksburg 
+river segement.
+
+
+
+```{r, echo=FALSE,dpi=200,fig.cap=NULL}
+figures(4)
+```
+Figure 3.  Predicted habitat availability at varying river 
+stages for Catfish Point (top panel) and Tara to Vicksburg 
+(bottom panel) segments of the lower Mississippi River.  
+
+```{r, echo=FALSE,dpi=200,fig.cap=NULL}
+figures(5)
+```
+Figure 3.  Predicted habitat availability at varying river 
+Temperature at average stage.  Predicted values for the 
+lower Mississippi River segment located at Catfish Point.
+Top panel represents actual probabilities of use and bottom
+panel represents cumlative probabilities.  
+
+```{r, echo=FALSE,dpi=200,fig.cap=NULL}
+figures(6)
+```
+
+Figure 4.  Predicted habitat availability at varying river 
+stage at average temperature.  Predicted values for the 
+lower Mississippi River segment located at Catfish Point.
+Top panel represents actual probabilities of use and bottom
+panel represents cumlative probabilities. .  
+
+
+```{r, echo=FALSE,dpi=200,fig.cap=NULL}
+figures(5)
+```
+
+Figure 5.  Predicted habitat availability at varying river 
+Temperature at average stage.  Predicted values for the 
+lower Mississippi River segment extending from Tara downstream to
+Vicksburg.  Top panel represents actual probabilities of use and bottom
+panel represents cumlative probabilities. 
+
+
+
+
+```{r, echo=FALSE,dpi=200,fig.cap=NULL}
+figures(7)
+```
+Figure 6. Predicted habitat availability at varying river 
+Temperature at average stage.  Predicted values for the 
+lower Mississippi River segment extending from Tara downstream to
+Vicksburg.  Top panel represents actual probabilities of use and bottom
+panel represents cumlative probabilities. 

@@ -1,55 +1,41 @@
-tables<- function(n,model_fits=NULL){
+tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 	if(n==2)
 		{# TABLE OF MEANS, STD. DEVS, MINIMUMS, AND MAXIMUMS
 		### now standardize predictors
-		prds<-matrix(c( 
-		# Trip and truck specific variables
-			"loadingTime","Loading time (min)*", 
-			"haulingTime","Hauling Time (min)",
-			"tot_time","Total time handling (min)",
-			"trip_no","Trip number for the day",
-			"truckVolume","Truck volume (m3)",
-			"nFish" ,"Number of fish transported",
-			"fish_per_vol","Number of fish per truck volume (no./m3)",
-			"delta_temp","Difference in temperature between collection facility and tank (C)",
-		# Trap and loading conditions
-			"doy","Day of the year transported",
-			"trap_total","Number of fish in trap",# number in trap
-			"waterTempCollSite","Water temperature at collection facility (C)",
-			"maxT_C",	"Maximum daily air temperature (C)",	
-			"day_bet","Average number of days since last trap tending",
-			"cloudcover","Cloud cover index",
-			# Run size, timing, and tributary conditions
-			"run_size","Run size",	
-			"doy50","Day of the year 50% of run passed Willamette Falls",
-			"dd_01","Degree days from first fish (C)",
-			"dd_50","Degree days 50% fish (C)",
-			"Q_01", "Mean daily discharge first (m3/s)",
-			"Q_50","Mean daily discharge 50% fish (m3/s)"),ncol=2, byrow=TRUE)
-
-			
 			
 		indx<- match(prds[,1],names(dat_unstd))# columns to standardize
-		mn<- apply(dat_unstd[,indx],2,mean,na.rm=TRUE)
-		sdd<- apply(dat_unstd[,indx],2,sd,na.rm=TRUE)
-		mnn<- apply(dat_unstd[,indx],2,min,na.rm=TRUE)
-		mxx<- apply(dat_unstd[,indx],2,max,na.rm=TRUE)
-
+		
+		# FOSTER
+		mn<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,mean,na.rm=TRUE)
+		sdd<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,sd,na.rm=TRUE)
+		mnn<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,min,na.rm=TRUE)
+		mxx<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,max,na.rm=TRUE)
 		tmp<- data.frame(Predictor=prds[,2],
 			V1=paste(round(mn,2)," (", round(sdd,2),")",sep=""),
 			Minimum=round(mnn,2),
 			Maximum=round(mxx,2))
 		names(tmp)[2]<- "Mean (SD)"
-	return(tmp)
-	}
-	
+		# DEXTER			
+		mn<- apply(dat_unstd[dat_unstd$location=="Dexter Dam",indx],2,mean,na.rm=TRUE)
+		sdd<- apply(dat_unstd[dat_unstd$location=="Dexter Dam",indx],2,sd,na.rm=TRUE)
+		mnn<- apply(dat_unstd[dat_unstd$location=="Dexter Dam",indx],2,min,na.rm=TRUE)
+		mxx<- apply(dat_unstd[dat_unstd$location=="Dexter Dam",indx],2,max,na.rm=TRUE)
+		tmpp<- data.frame(Predictor=prds[,2],
+			V1=paste(round(mn,2)," (", round(sdd,2),")",sep=""),
+			Minimum=round(mnn,2),
+			Maximum=round(mxx,2))			
+		names(tmpp)[2]<- "Mean (SD)"
+		out<- cbind(tmp,tmpp[,-1])
+		return(out)
+		}
 	if(n==3)
 		{# TABLE OF MODEL SELECTION 
-		tmp<-as.data.frame(t(sapply(1:length(model_fits), function(x) summary(model_fits[[x]])$AICtab)))
-		tmp$model<- sapply(1:length(model_fits), function(x){
-			tmp<- paste(as.character(summary(model_fits[[x]])$call$formula),collapse="~")
+		## FOSTER
+		tmp<-as.data.frame(t(sapply(1:length(out_foster), function(x) summary(out_foster[[x]])$AICtab)))
+		tmp$model<- sapply(1:length(out_foster), function(x){
+			tmp<- paste(as.character(summary(out_foster[[x]])$call$formula),collapse="~")
 			return(substr(tmp,2,nchar(tmp)))})
-		tmp$model_indx<- c(1:length(model_fits))
+		tmp$model_indx<- c(1:length(out_foster))
 		tmp$k<- nrow(dat)-tmp$df.resid
 		tmp$AICc<- tmp$AIC+((2*tmp$k*(tmp$k+1))/(nrow(dat)-tmp$k-1))
 		tmp$dAICc<- tmp$AICc-min(tmp$AICc)
@@ -57,217 +43,224 @@ tables<- function(n,model_fits=NULL){
 		tmp$lik<- exp(-0.5*tmp$dAICc)
 		tmp$w<- tmp$lik/sum(tmp$lik)
 		tmp$cum_w<- cumsum(tmp$w)
-		tmp<- as.data.table(tmp)
-		return(tmp)
+		tmp$location<-"Foster Dam"
+		out<- tmp
+		
+		## DEXTER
+		tmp<-as.data.frame(t(sapply(1:length(out_dexter), function(x) summary(out_dexter[[x]])$AICtab)))
+		tmp$model<- sapply(1:length(out_dexter), function(x){
+			tmp<- paste(as.character(summary(out_dexter[[x]])$call$formula),collapse="~")
+			return(substr(tmp,2,nchar(tmp)))})
+		tmp$model_indx<- c(1:length(out_dexter))
+		tmp$k<- nrow(dat)-tmp$df.resid
+		tmp$AICc<- tmp$AIC+((2*tmp$k*(tmp$k+1))/(nrow(dat)-tmp$k-1))
+		tmp$dAICc<- tmp$AICc-min(tmp$AICc)
+		tmp<- tmp[order(tmp$dAICc, decreasing=FALSE),]
+		tmp$lik<- exp(-0.5*tmp$dAICc)
+		tmp$w<- tmp$lik/sum(tmp$lik)
+		tmp$cum_w<- cumsum(tmp$w)
+		tmp$location<-"Dexter Dam"
+		out<-rbind(out,tmp)
+		xx<- strsplit(out$model,"~")		
+		out$pred<- sapply(1:nrow(out), function(x) unlist(strsplit(xx[[x]][3],"[ +]"))[1])
+		out<- merge(out,prds,by="pred")
+		out<- out[order(out$location, out$dAICc),]
+		indx<- match(c("model_indx","predictor","location","k","AICc","dAICc","lik","w","cum_w"),names(out))
+		out<- out[,indx]
+		return(out)
 		}
 	if(n==4)
 	{
-	# FIXED AND RANDOM EFFECTS
+	# FIXED AND RANDOM EFFECTS FOR CONFIDENCE MODEL SETS
 	# FOR BEST MODEL
 	print("This will take a few minutes to run and profile the CIs")
-	fin<-glmer(mort ~ fish_per_vol+tot_time+doy + I(doy^2)+trap_total + (1 | samp), 
-		data = dat,
-		family=binomial,
-		control=glmerControl(optimizer="bobyqa"))
-	parameterEstimates<- data.frame(type=c(rep("Fixed",6),"Random"),
-		Parameter=c(row.names(summary(fin)$coefficients),".sig01"),
-		Estimate=c(summary(fin)$coefficients[,1],
-			sqrt(as.vector(summary(fin)$varcor[[1]]))))
-	ci<- as.data.frame(confint(fin))
-	ci$Parameter<- row.names(ci)
-	parameterEstimates<- merge(parameterEstimates,ci,by="Parameter",
-		all.x=TRUE)
-	return(parameterEstimates)
+	ms<- tables(3)
+	confModSet<- subset(ms[ms$location=="Foster Dam",],(w>0.95 | cum_w<=0.95))
+	out<- data.frame()
+	for(i in 1:nrow(confModSet))
+		{
+		mod<- confModSet$model_indx[i]
+		parameterEstimates<- data.frame(model=mod,pred=confModSet$predictor[i],
+			Parameter=c(row.names(summary(out_foster[[mod]])$coefficients),".sig01"),
+			Estimate=c(summary(out_foster[[mod]])$coefficients[,1],
+				sqrt(as.vector(summary(out_foster[[mod]])$varcor[[1]]))))
+				
+		ci<- as.data.frame(confint(out_foster[[mod]]))
+		ci$Parameter<- row.names(ci)
+		parameterEstimates<- merge(parameterEstimates,ci,by="Parameter",
+			all.x=TRUE)
+		parameterEstimates$location<- "Foster Dam"
+		out<- rbind(out, parameterEstimates)			
+		}
+
+		
+	# DEXTER DAM	
+	confModSet<- subset(ms[ms$location=="Dexter Dam",],(w>0.95 | cum_w<=0.95))
+	for(i in 1:nrow(confModSet))
+		{
+		mod<- confModSet$model_indx[i]
+		parameterEstimates<- data.frame(model=mod,pred=confModSet$predictor[i],
+			Parameter=c(row.names(summary(out_dexter[[mod]])$coefficients),".sig01"),
+			Estimate=c(summary(out_dexter[[mod]])$coefficients[,1],
+				sqrt(as.vector(summary(out_dexter[[mod]])$varcor[[1]]))))
+				
+		ci<- as.data.frame(confint(out_dexter[[mod]]))
+		ci$Parameter<- row.names(ci)
+		parameterEstimates<- merge(parameterEstimates,ci,by="Parameter",
+			all.x=TRUE)
+		parameterEstimates$location<- "Dexter Dam"
+		out<- rbind(out, parameterEstimates)	
+		}
+	return(out)
 	}
-	if(n=="a")
-		{ 
-		# TABLE OF PREDICTED VALUES FOR THE SUITE OF VARIABLES INCLUDED IN FINAL MODEL
-		fin<-glmer(mort ~ fish_per_vol+tot_time+doy + 
-			I(doy^2)+ trap_total + (1 | samp), 
-			data = dat,
-			family=binomial,
-			control=glmerControl(optimizer="bobyqa"))
-		pdat<- expand.grid(fish_per_vol=c(-1,0,1),
-			doy=seq(-1,1.5,0.025),
-			trap_total=c(-1,0,1),
-			tot_time=c(-1,0,1),
-			volume=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607))
-		
-		# PREDICTION INTERVALS FOR PLOTS...	
-		# http://www.r-bloggers.com/confidence-intervals-for-prediction-in-glmms/
-		mm<- model.matrix(~ fish_per_vol+tot_time+doy + I(doy^2)+ trap_total,pdat)	
-		pdat$y_hat<- mm%*%fixef(fin)# predict(fin, pdat, re.form=~0)				
-		pvar1 <- diag(mm %*% tcrossprod(vcov(fin),mm))
-		tvar1 <- pvar1+VarCorr(fin)$samp[1]  ## must be adapted for more complex models
-
-		# OTHER BITS TO ADD TO PREDICTED DATASET
-		pdat$y_hat_lo<- pdat$y_hat-1.96*(sqrt(tvar1))
-		pdat$y_hat_hi<- pdat$y_hat+1.96*(sqrt(tvar1))	
-					
-		# OTHER BITS TO ADD TO PREDICTED DATASET
-		pdat$p_hat<- plogis(pdat$y_hat)
-		pdat$p_hat_lo<- plogis(pdat$y_hat-1.96*(sqrt(tvar1)))
-		pdat$p_hat_hi<- plogis(pdat$y_hat+1.96*(sqrt(tvar1)))
-
-		
-		# PUT PREDICTORS BACK ON UNSTANDARDIZED SCALE
-		pdat$nfish<-  round(((pdat$fish_per_vol * 8.42)+14.17)*pdat$volume,0)
-		pdat$doy<- pdat$doy*31+201.99
-		# CALCULATE THE RISK OF A SINGLE MORTALITYH
-		pdat$risk<- 1 - pbinom(0,pdat$nfish,prob=pdat$p_hat,lower.tail=TRUE)
-		return(pdat)
-		}
 	if(n==5)
-		{
-		# TABLE OF PREDICTIONS FOR FOSTER AND DEXTER RUN AS SEPARATE
-		grr<- tables(3,model_fits=out_foster)	
-		n<-40000	# do not set above 50K, it throws an erro in tcrossprod	
-		y_hat<- y_lo<- y_hi<- matrix(0, n,nrow(grr))
-		pdat<- data.frame(
-			doy=runif(n,-2,2),
-			trap_total=runif(n,-2,2),
-			tot_time=runif(n,-2,2),# need to do sample xxx with reasonable values
-			waterTempCollSite=runif(n,-2,2),
-			trip_no=runif(n,-2,2),
-			cloudcover=runif(n,-2,2),
-			fish_per_vol=runif(n,-2,2),
-			maxT_C=runif(n,-2,2),
-			dd_01=runif(n,-2,2),
-			Q_50=runif(n,-2,2),
-			doy50=runif(n,-2,2),
-			dd_50=runif(n,-2,2),
-			run_size=runif(n,-2,2),
-			delta_temp=runif(n,-2,2),
-			Q_01=runif(n,-2,2),
-			day_bet=runif(n,-2,2),				
-			volume=sample(c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),n,replace=TRUE))
-
-		for(i in 1:nrow(grr))
-			{
-			mod<- grr$model_indx[i]
-			mm<- paste("~",paste(names(fixef(out_foster[[mod]]))[-1],collapse="+"))
-			mm<- model.matrix(as.formula(mm),pdat)	
-			y_hat[,i]<- mm%*%fixef(out_foster[[mod]])*grr$w[i]				
-			pvar1 <- diag(mm %*% tcrossprod(vcov(out_foster[[mod]]),mm))
-			tvar1 <- pvar1+VarCorr(out_foster[[mod]])$samp[1] 
-
-			# OTHER BITS TO ADD TO PREDICTED DATASET
-			y_lo[,i]<- y_hat[,i]-1.96*(sqrt(tvar1))*grr$w[i]
-			y_hi[,i]<- y_hat[,i]+1.96*(sqrt(tvar1))*grr$w[i]	
-			}
-			
-		pdat$y_hat<-apply(y_hat,1,sum)
-		pdat$y_hi<- apply(y_hi,1,sum)
-		pdat$y_lo<- apply(y_lo,1,sum)
-
-		pdat$p_hat<-plogis(pdat$y_hat)
-		pdat$p_hi<- plogis(pdat$y_hi)
-		pdat$p_lo<- plogis(pdat$y_lo)
-		}
+		{# OPTIMAL DECISIONS FOR FOSTER
+		minPerFish<- 4.6#Foster median nFish/loading time
+		opt_dat<- expand.grid(n= seq(10,350,by=25),
+			fish_per_vol=c(seq(0.1,0.9,by=0.1), seq(1,58,by=1)),
+			truckVolume=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),
+			haulingTime=c(15,30,45,60,75,90,105,120),
+			loadingTime=c(15,30,45,60,75,90,105,120))
+		# EXPECTED LOADING TIME
+		opt_dat$fishPerHaul<- round(opt_dat$truckVolume*opt_dat$fish_per_vol,0)
+		opt_dat$n_trips<- ceiling(opt_dat$n/opt_dat$fishPerHaul)
+		opt_dat$loadingTime<- ifelse(opt_dat$n_trips==1,opt_dat$n*minPerFish, opt_dat$fishPerHaul*minPerFish)
+		opt_dat$tot_time<- scale(opt_dat$loadingTime+opt_dat$haulingTime ,center=160.16, scale=66.99)
+		opt_dat$fish_per_vol<-opt_dat$fishPerHaul
 		
+		# CONFIDENCE MODEL SET.
+		ms<- tables(3)
+		confModSet<- subset(ms[ms$location=="Foster Dam",],(w>0.95 | cum_w<=0.95))	
+		confModSet$w<-confModSet$w/sum(confModSet$w)
+		opt_dat$y<- predict(out_foster[[confModSet$model_indx[1]]],
+			opt_dat,re.form=NA)*confModSet$w[1] 
+
+		opt_dat$p<- plogis(opt_dat$y)
+		opt_dat$nn<- ifelse(opt_dat$n_trips==1, opt_dat$n,opt_dat$fishPerHaul)
+		opt_dat$risk<- 1 - pbinom(0,opt_dat$nn,prob=opt_dat$p,lower.tail=TRUE)
+		# DETERMINE HOW LONG PROCESS WILL TAKE IN HOURS
+		opt_dat$dailyTime<- ((opt_dat$loadingTime+opt_dat$haulingTime*2)*opt_dat$n_trips)/60
+		opt_dat<-subset(opt_dat, opt_dat$dailyTime<=10)
+		opt_dat$risk_u<- (opt_dat$risk-max(opt_dat$risk))/(min(opt_dat$risk)-max(opt_dat$risk))
+		opt_dat$time_u<- (opt_dat$dailyTime-max(opt_dat$dailyTime))/(min(opt_dat$dailyTime)-max(opt_dat$dailyTime))
+		opt_dat$truckVolume_gal<- round(opt_dat$truckVolume*264.172,0)
+		opt_dat$U<- 0.5*opt_dat$risk_u+0.5*opt_dat$time_u
+
+		xxx<-dcast(opt_dat,n+truckVolume_gal~"U",max,value.var="U")
+		xxx$dec<-NA
+		for(i in 1:nrow(xxx))
+			{
+			x<- opt_dat[opt_dat$n==xxx$n[i] & 
+				opt_dat$truckVolume_gal==xxx$truckVolume_gal[i] &
+				opt_dat$U == xxx$U[i],] 
+			if(nrow(x)==1){x<-x}
+			if(nrow(x)>1){x<-x[which.max(x$density),]}
+			xxx$dec[i]<-paste(c(x$fishPerHaul, x$n_trips, ceiling(x$loadingTime)),collapse="|")
+			}
+		yyy<- dcast(xxx,n~truckVolume_gal, value.var="dec")
+		return(yyy)
+		}
 	if(n==6)
-		{
-		# TABLE OF PREDICTIONS FOR FOSTER AND DEXTER RUN AS SEPARATE
-		grr<- tables(3,model_fits=out_dexter)	
-		n<-40000	# do not set above 50K, it throws an error in tcrossprod	
-		y_hat<- y_lo<- y_hi<- matrix(0, n,nrow(grr))
-		pdat<- data.frame(
-			doy=runif(n,-2,2),
-			trap_total=runif(n,-2,2),
-			tot_time=runif(n,-2,2),# need to do sample xxx with reasonable values
-			waterTempCollSite=runif(n,-2,2),
-			trip_no=runif(n,-2,2),
-			cloudcover=runif(n,-2,2),
-			fish_per_vol=runif(n,-2,2),
-			maxT_C=runif(n,-2,2),
-			dd_01=runif(n,-2,2),
-			Q_50=runif(n,-2,2),
-			doy50=runif(n,-2,2),
-			dd_50=runif(n,-2,2),
-			run_size=runif(n,-2,2),
-			delta_temp=runif(n,-2,2),
-			Q_01=runif(n,-2,2),
-			day_bet=runif(n,-2,2),				
-			volume=sample(c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),n,replace=TRUE))
+		{# DEXTER DAM
+		minPerFish<- 0.25#dexter
+		opt_dat<- expand.grid(n= seq(10,350,by=25),
+			fish_per_vol=c(seq(0.1,0.9,by=0.1), seq(1,58,by=1)),
+			truckVolume=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),
+			haulingTime=c(15,30,45,60,75,90,105,120))
+		# EXPECTED LOADING TIME
+		opt_dat$fishPerHaul<- round(opt_dat$truckVolume*opt_dat$fish_per_vol,0)
+		opt_dat$n_trips<- ceiling(opt_dat$n/opt_dat$fishPerHaul)
+		opt_dat$loadingTime<- ifelse(opt_dat$n_trips==1,opt_dat$n*minPerFish, opt_dat$fishPerHaul*minPerFish)
+		# CONFIDENCE MODEL SET.
+		ms<- tables(3)
+		confModSet<- subset(ms[ms$location=="Dexter Dam",],(w>0.95 | cum_w<=0.95))	
+		confModSet$w<-confModSet$w/sum(confModSet$w)
+		opt_dat$y<- predict(out_dexter[[confModSet$model_indx[1]]],opt_dat,re.form=NA)*confModSet$w[1] 
+		opt_dat$p<- plogis(opt_dat$y)
+		opt_dat$nn<- ifelse(opt_dat$n_trips==1, opt_dat$n,opt_dat$fishPerHaul)
+		opt_dat$risk<- 1 - pbinom(0,opt_dat$nn,prob=opt_dat$p,lower.tail=TRUE)
+		# DETERMINE HOW LONG PROCESS WILL TAKE IN HOURS
+		opt_dat$dailyTime<- ((opt_dat$loadingTime+opt_dat$haulingTime*2)*opt_dat$n_trips)/60
+		opt_dat<-subset(opt_dat, opt_dat$dailyTime<=10)
+		opt_dat$risk_u<- (opt_dat$risk-max(opt_dat$risk))/(min(opt_dat$risk)-max(opt_dat$risk))
+		opt_dat$time_u<- (opt_dat$dailyTime-max(opt_dat$dailyTime))/(min(opt_dat$dailyTime)-max(opt_dat$dailyTime))
+		opt_dat$truckVolume_gal<- round(opt_dat$truckVolume*264.172,0)
+		opt_dat$U<- 0.5*opt_dat$risk_u+0.5*opt_dat$time_u
 
-		for(i in 1:nrow(grr))
+		xxx<-dcast(opt_dat,n+truckVolume_gal~"U",max,value.var="U")
+		xxx$dec<-NA
+		for(i in 1:nrow(xxx))
 			{
-			mod<- grr$model_indx[i]
-			mm<- paste("~",paste(names(fixef(out_dexter[[mod]]))[-1],collapse="+"))
-			mm<- model.matrix(as.formula(mm),pdat)	
-			y_hat[,i]<- mm%*%fixef(out_dexter[[mod]])*grr$w[i]				
-			pvar1 <- diag(mm %*% tcrossprod(vcov(out_dexter[[mod]]),mm))
-			tvar1 <- pvar1+VarCorr(out_dexter[[mod]])$samp[1] 
-
-			# OTHER BITS TO ADD TO PREDICTED DATASET
-			y_lo[,i]<- y_hat[,i]-1.96*(sqrt(tvar1))*grr$w[i]
-			y_hi[,i]<- y_hat[,i]+1.96*(sqrt(tvar1))*grr$w[i]	
+			x<- opt_dat[opt_dat$n==xxx$n[i] & 
+				opt_dat$truckVolume_gal==xxx$truckVolume_gal[i] &
+				opt_dat$U == xxx$U[i],] 
+			if(nrow(x)==1){x<-x}
+			if(nrow(x)>1){x<-x[which.max(x$fish_per_vol),]}
+			xxx$dec[i]<-paste(c(x$fishPerHaul, x$n_trips, ceiling(x$loadingTime)),collapse="|")
 			}
-			
-		pdat$y_hat<-apply(y_hat,1,sum)
-		pdat$y_hi<- apply(y_hi,1,sum)
-		pdat$y_lo<- apply(y_lo,1,sum)
-
-		pdat$p_hat<-plogis(pdat$y_hat)
-		pdat$p_hi<- plogis(pdat$y_hi)
-		pdat$p_lo<- plogis(pdat$y_lo)
-		}		
-	
-	if(n==7)
-		{
-		# TABLE GENERATING SIMULATED VALUES AS MORTALITIES TO DEMONSTRATE 
-		# WHAT CAN BE LEARNED
-				# TABLE OF PREDICTIONS FOR FOSTER AND DEXTER RUN AS SEPARATE
-		grr<- tables(3,model_fits=out_dexter)	
-		n<-10	# do not set above 50K, it throws an error in tcrossprod	
+		yyy<- dcast(xxx,n~truckVolume_gal, value.var="dec")
+		return(yyy)
+		}
+		if(n==99)
+		{# SUMMARY OF NUMBERS OF FISH OUPLANTED 
+		# DAILY SUMMARY
+		daily<- ddply(trans, .(location,year,doy),summarize,
+			n=sum(nFish))
+		overall<- ddply(daily, .(location),summarize,
+			mean_n=mean(n),
+			min_n=min(n),
+			max_n=max(n))
+		overall$type<- "Number"
+		# ADD DENSITIES TO THE SUMMARY
+		overall2<- ddply(trans, .(location),summarize,
+			mean_n=mean(na.omit(fish_per_vol)),
+			min_n=min(na.omit(fish_per_vol)),
+			max_n=max(na.omit(fish_per_vol)))
+		overall2$type<- "Density"	
+		overall<- rbind(overall,overall2)
+		# ADD TOTAL TIME
+		overall2<- ddply(trans, .(location),summarize,
+			mean_n=mean(na.omit(loadingTime)),
+			min_n=min(na.omit(loadingTime)),
+			max_n=max(na.omit(loadingTime)))
+		overall2$type<- "loadingTime"	
+		overall<- rbind(overall,overall2)	
+		}
+	if(n=="analysis data")
+		{# THIS CODE STANDARIZES PREDICTION TO MEAN 0 AND SD=1
+		out<- trans
+		out<- out[out$waterbody!=-99,]		
+		out$waterbody<- factor(out$waterbody)
+		## create two variables to handle overdispersion
+		out$site_yr = as.factor(paste(out$year,out$location,sep = "_"))
+		out<- out[!is.na(out$mort[,1]),]
+		out$samp = as.factor(c(1:nrow(out)))
+		indx<- match(prds[,1],names(dat_unstd))# columns to standardize
 		
-		pdat<- data.frame(
-			doy=runif(n,-2,2),
-			trap_total=runif(n,-2,2),
-			tot_time=runif(n,-2,2),# need to do sample xxx with reasonable values
-			waterTempCollSite=runif(n,-2,2),
-			trip_no=runif(n,-2,2),
-			cloudcover=runif(n,-2,2),
-			fish_per_vol=runif(n,-2,2),
-			maxT_C=runif(n,-2,2),
-			dd_01=runif(n,-2,2),
-			Q_50=runif(n,-2,2),
-			doy50=runif(n,-2,2),
-			dd_50=runif(n,-2,2),
-			run_size=runif(n,-2,2),
-			delta_temp=runif(n,-2,2),
-			Q_01=runif(n,-2,2),
-			day_bet=runif(n,-2,2),				
-			volume=sample(c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),n,replace=TRUE))
-		y_hat<- matrix(0, n,nrow(grr))
-		for(i in 1:nrow(grr))
+		# get means and sdd to standarize with same as tbl 2
+		# FOSTER
+		mn<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,mean,na.rm=TRUE)
+		sdd<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,sd,na.rm=TRUE)
+		fos<- as.matrix(cbind(indx,mn,sdd))
+		# DEXTER			
+		mn<- apply(dat_unstd[dat_unstd$location=="Dexter Dam",indx],2,mean,na.rm=TRUE)
+		sdd<- apply(dat_unstd[dat_unstd$location=="Dexter Dam",indx],2,sd,na.rm=TRUE)
+		dex<- as.matrix(cbind(indx,mn,sdd))
+		
+		
+		for(i in indx)
 			{
-			mod<- grr$model_indx[i]
-			mm<- paste("~",paste(names(fixef(out_dexter[[mod]]))[-1],collapse="+"))
-			mm<- model.matrix(as.formula(mm),pdat)	
-			y_hat[,i]<- (mm%*%fixef(out_dexter[[mod]])+rnorm(n,0,sqrt(VarCorr(out_dexter[[mod]])$samp[[1]])))#*grr$w[i]				
+			out[out$location=="Foster Dam",i]<- scale(out[out$location=="Foster Dam",i],
+				center= fos[which(fos[,1]==i),2],
+				scale = fos[which(fos[,1]==i),3])
+			out[out$location=="Dexter Dam",i]<- scale(out[out$location=="Dexter Dam",i],
+				center= dex[which(dex[,1]==i),2],
+				scale = dex[which(dex[,1]==i),3])
+			out[,i]<-ifelse(is.na(out[,i]),0,out[,i])
 			}
-		pdat$y_hat<-y_hat %*% grr$w	
-		pdat$p_hat<-plogis(pdat$y_hat)
-		pdat$morts<- rbinom(n,100,pdat$p_hat)
+		out$doy_sqrd<- out$doy^2
+		out$year<- as.factor(out$year)
+		out$samp<-as.factor(out$samp)
+		return(out)
 		}
-	trans_grey<- rgb(120,120,120,alpha=10,maxColorValue=255)# make grey color with some transparency
-	plot(morts~doy,pdat,pch=19,col=trans_grey)
-	
-	if(n==7)
-	{
-	# UTILITIY TABLE
-		tmp<- tables('a')
-		tmp$risk_score<- (pdat$risk-max(pdat$risk))/(0-max(pdat$risk))
-		n_fish_in_trap<- c(50,100,200,300,400,500,600,700,800,900,1000)
-		tmp$n_trips<- 500/(tmp$volume*tmp$fish_per_vol)
-		fish_per_min<- 1
-	}	
-		
-		
-		
-		plot(risk_score~p_hat,tmp)
-		
-		}
-
 }

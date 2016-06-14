@@ -20,9 +20,6 @@ fifty_trap<- aggregate(doy~year+location,trap_cnt,max, subset=p<=0.5)
 annual_values<- merge(first_trap, fifty_trap, by=c("location","year"))
 # NUMBER OF DAYS BETWEEN TRAP OPERATIONS
 trap_cnt$day_bet<- c(0,trap_cnt$doy[-1]-trap_cnt$doy[-nrow(trap_cnt)])* c(1,ifelse(trap_cnt$year[-1]==trap_cnt$year[-nrow(trap_cnt)],1,0))
-
-
-
 names(annual_values)[3]= "trap01"
 names(annual_values)[4]= "trap50"
 
@@ -93,16 +90,14 @@ trans$doy<-as.numeric(strftime(trans$date, format = "%j"))
 trans$year<-as.numeric(strftime(trans$date, format = "%Y"))
 trans<-merge(trans,weath,by=c("location","year","doy"), all.x=TRUE)
 
-## gallons to m3
+## CONVERT GALLONS TO M^3 
 trans$truckVolume<-trans$truckVolume*0.00378541
-## temp F to C
-F2C<-function(x){ round((x-32)*5/9,2)}
+## CONVERT TEMPERATURE FROM F TO C
+F2C<-function(x){round((x-32)*5/9,2)}
 trans$waterTempCollSite<-F2C(trans$waterTempCollSite)
 trans$waterTempStart<-F2C(trans$waterTempStart)
 trans$waterTempEnd<-F2C(trans$waterTempEnd)
 trans$waterTempRelease<-F2C(trans$waterTempRelease)
-
-
 trans$trip_no<-1
 for(i in 2:nrow(trans))
 	{
@@ -114,58 +109,6 @@ trans$fish_per_vol<- trans$nFish/trans$truckVolume
 
 ## create response variable DO THIS BEFORE STANDARDIZING DATA!!!
 trans$mort<-cbind((trans$nLoss + trans$nLikelyLoss), trans$nFish - (trans$nLoss + trans$nLikelyLoss))
-
 trans<- merge(trans,annual_values, by=c("location","year"))
-
 trans<- merge(trans, trap_cnt[,c("location","year","doy","trap_total","day_bet")],by=c("location","year","doy"))
-### now standardize predictors
-prds<-c("location","waterbody", "year","mort",	 #THINGS NOT TO MESS WITH  
-	
-	"doy50",# in order from table 1
-	"dd_01",
-	"dd_50",
-	"Q_01", 
-	"Q_50", 
-	"run_size", 
-	"waterTempCollSite",
-	"delta_temp",
-	"doy",# doy^2
-	"trip_no",
-	"loadingTime",
-	"tot_time",
-	"fish_per_vol",
-	"trap_total",
-	"day_bet",
-	"truckVolume",
-	"maxT_C",
-	"cloudcover")
 dat_unstd<- trans	
-prds%in%names(trans)
-dat<- trans[,match(prds,names(trans))]
-
-indx<- match(prds[-c(1:4)],names(dat))# columns to standardize
-for(i in indx)
-	{
-	mn<- mean(dat[,i],na.rm=TRUE)
-	sdd<- sd(dat[,i],na.rm=TRUE)
-	dat[,i] <-ifelse(is.na(dat[,i]),0,(dat[,i]-mn)/sdd)
-	}
-dat$doy_sqrd<- dat$doy^2
-	
-dat<- dat[dat$waterbody!=-99,]
-dat<- dat[!(is.na(dat$year)),]
-dat$waterbody<- factor(dat$waterbody)
-## create two variables to handle overdispersion
-dat$site_yr = as.factor(paste(dat$year,dat$location,sep = "_"))
-dat<- dat[!is.na(dat$mort[,1]),]
-dat$samp = as.factor(c(1:nrow(dat)))
-
-
-dat_unstd<- dat_unstd[dat_unstd$waterbody!=-99,]
-dat_unstd<- dat_unstd[!(is.na(dat_unstd$year)),]
-dat_unstd$waterbody<- factor(dat_unstd$waterbody)
-## create two variables to handle overdispersion
-dat_unstd$site_yr = as.factor(paste(dat_unstd$year,dat_unstd$location,sep = "_"))
-dat_unstd<- dat_unstd[!is.na(dat_unstd$mort[,1]),]
-dat_unstd$samp = as.factor(c(1:nrow(dat_unstd)))
-

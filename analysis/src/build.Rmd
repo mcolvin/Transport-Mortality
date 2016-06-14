@@ -1,19 +1,2 @@
 
 
-
-
-
-```{r}
-figures(1)
-	savePlot("./figures/01_study_area.wmf",type="wmf")
-	
-	
-	## TABLES
-	tbl2<- tables(2)
-	write.csv(tbl2, "./output/tbl2.csv",row.names = FALSE)
-	tbl3<- tables(3,model_fits=out_all)
-	write.csv(tbl3, "./output/tbl3.csv",row.names = FALSE)
-	tbl4<- tables(4)
-	write.csv(tbl4, "./output/tbl4.csv",row.names = FALSE)
-	
-	```
