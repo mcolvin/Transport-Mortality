@@ -1,4 +1,9 @@
 
+maxDensity<- 1/(25*0.00378541)# from will fish oparations plan <= 25 gallons per fish
+
+
+# HYPOTHESES TABLE
+tbl1<- read.csv("./tables/hypotheses.csv")
 
 trap_cnt<-read.csv("./dat/trap_counts.csv")
 WF_count<-read.csv("./dat/will_falls_counts.csv")
@@ -41,14 +46,14 @@ names(prds)<- c("pred","predictor")
 spfiles<- function()
 	{
 	#will_rivrs<<- readOGR("C:/Users/mcolvin/Documents/projects/gis coverages", "willamette_rivers")
-	will_bndry<<- readOGR("C:/Users/mcolvin/Documents/projects/gis coverages", "willamette_boundary")
-	oreg_bndry<<- readOGR("C:/Users/mcolvin/Documents/projects/gis coverages", "or_state_boundary")
-	oreg_dams<<- readOGR("C:/Users/mcolvin/Documents/projects/gis coverages", "willamette_dams")
+	will_bndry<<- readOGR("C:/Users/mcolvin/Documents/projects/gis coverages", "willamette_boundary", verbose=FALSE)
+	oreg_bndry<<- readOGR("C:/Users/mcolvin/Documents/projects/gis coverages", "or_state_boundary", verbose=FALSE)
+	oreg_dams<<- readOGR("C:/Users/mcolvin/Documents/projects/gis coverages", "willamette_dams", verbose=FALSE)
 	#UWR_chinook_reservoirs<<- readOGR("C:/Users/mcolvin/Documents/projects/gis coverages", "UWR_chinook_reservoirs")
 	#oreg_wbody<<- readOGR("C:/Users/mcolvin/Documents/projects/gis coverages", "willamette_wb")
-	red<<-readOGR("C:/Users/mcolvin/Documents/projects/gis coverages" ,"MigratoryCorridorDamToDam_ll_nad27")
-	full<<-readOGR("C:/Users/mcolvin/Documents/projects/gis coverages" ,"MigratoryCorridorFull_ll_nad27")
-	alll<<-readOGR("C:/Users/mcolvin/Documents/projects/gis coverages" ,"all")
+	red<<-readOGR("C:/Users/mcolvin/Documents/projects/gis coverages" ,"MigratoryCorridorDamToDam_ll_nad27", verbose=FALSE)
+	full<<-readOGR("C:/Users/mcolvin/Documents/projects/gis coverages" ,"MigratoryCorridorFull_ll_nad27", verbose=FALSE)
+	alll<<-readOGR("C:/Users/mcolvin/Documents/projects/gis coverages" ,"all", verbose=FALSE)
 	#allriv<<-readOGR("C:/Users/mcolvin/Documents/projects/gis coverages" ,"All_Willamette_Rivers")
 	#allriv<<-spTransform(allriv, CRS("+proj=longlat +datum=NAD27"))
 	#
@@ -66,3 +71,7 @@ spfiles<- function()
 	alll<<-spTransform(alll, CRS("+proj=longlat +datum=NAD27"))
 
 	}
+
+	
+	
+	

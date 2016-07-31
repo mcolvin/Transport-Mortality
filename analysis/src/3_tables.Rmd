@@ -1,22 +1,53 @@
 # Tables
 
-```{r,echo=FALSE}
-setwd("C:/Users/mcolvin/Documents/projects/MS-Pallids/analysis")
+```{r,echo=FALSE,warning=FALSE, message=FALSE}
+setwd("C:/Users/mcolvin/Documents/projects/PSM/analyses/Transport-Mortality/analysis/")
 	source("./src/1_global.R")  	
 	source("./src/2_functions.R")         
 	source("./src/3_load.R")     
   	source("./src/4_clean.R" )
  	source("./src/5_tables.R") 
 	source("./src/6_figures.R") 
-	source("./src/7_model.R")
+#	source("./src/7_models.R")
 ```
 
 
-Table 1. Deviance information criteria (DIC) values and model 
-selection results for candidate habitat selection models for 
-Pallid Sturgeon captures in the Lower Mississippi River. 
+Table 1.  Candidate explanatory variables, descriptions, and hypotheses. 
 
 ```{r, echo=FALSE}
 tbl1<- tables(1)
-kable(tbl1,digits=2,caption = NULL,row.names=FALSE)
+kable(tbl1,digits=2,caption = NULL,row.names=FALSE,align=c('l','l','l'),
+	col.names=c("Predictor type","Predictor","Description and hypothesis"))
 ```
+
+Table 2. Summary of candidate variable used to evaluate the factors related to Chinook Salmon transport mortality in the Upper Willamette Basin.
+
+```{r, echo=FALSE}
+tbl2<- tables(2)
+kable(tbl2,digits=2,caption = NULL,row.names=FALSE)
+```
+
+Table 3. Candidate models and model selection criteria for the set of candidate models for 
+adult spring Chinook Salmon transport mortality. All models contained an intercept and 
+a random effect of sample in addition to the variable being evaluated.  Models retained for 
+full model; cumulative model weight ≤ 0.95.
+
+```{r, echo=FALSE}
+tbl3<- tables(3)
+kable(tbl3,digits=2,caption = NULL,row.names=FALSE)
+```
+
+ 
+  
+  
+  
+  
+Table 4. Parameter estimates and 95% confidence limits (CL) of fixed and random effects 
+for best approximating model of adult Chinook Salmon transport mortality. 
+Random effects are variance components. 
+
+```{r, echo=FALSE,warining=FALSE,message=FALSE}
+tbl4<- tables(4)
+kable(tbl4,digits=2,caption = NULL,row.names=FALSE)
+```
+

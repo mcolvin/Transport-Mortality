@@ -1,4 +1,9 @@
 tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
+	if(n==1)
+		{
+		tbl1$Predictor.type[duplicated(tbl1$Predictor.type)]<-NA
+		return(tbl1)
+		}
 	if(n==2)
 		{# TABLE OF MEANS, STD. DEVS, MINIMUMS, AND MAXIMUMS
 		### now standardize predictors
@@ -45,7 +50,7 @@ tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 		tmp$cum_w<- cumsum(tmp$w)
 		tmp$location<-"Foster Dam"
 		out<- tmp
-		
+
 		## DEXTER
 		tmp<-as.data.frame(t(sapply(1:length(out_dexter), function(x) summary(out_dexter[[x]])$AICtab)))
 		tmp$model<- sapply(1:length(out_dexter), function(x){
@@ -63,7 +68,7 @@ tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 		out<-rbind(out,tmp)
 		xx<- strsplit(out$model,"~")		
 		out$pred<- sapply(1:nrow(out), function(x) unlist(strsplit(xx[[x]][3],"[ +]"))[1])
-		out<- merge(out,prds,by="pred")
+		out<- merge(out,prds,by="pred",all=TRUE)
 		out<- out[order(out$location, out$dAICc),]
 		indx<- match(c("model_indx","predictor","location","k","AICc","dAICc","lik","w","cum_w"),names(out))
 		out<- out[,indx]
@@ -75,7 +80,9 @@ tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 	# FOR BEST MODEL
 	print("This will take a few minutes to run and profile the CIs")
 	ms<- tables(3)
-	confModSet<- subset(ms[ms$location=="Foster Dam",],(w>0.95 | cum_w<=0.95))
+	confModSet<- subset(ms[ms$location=="Foster Dam",])
+	
+	confModSet<- confModSet[1:which(confModSet$predictor=="Intercept only"),]
 	out<- data.frame()
 	for(i in 1:nrow(confModSet))
 		{
@@ -95,7 +102,8 @@ tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 
 		
 	# DEXTER DAM	
-	confModSet<- subset(ms[ms$location=="Dexter Dam",],(w>0.95 | cum_w<=0.95))
+	confModSet<- subset(ms[ms$location=="Dexter Dam",])
+	confModSet<- confModSet[1:which(confModSet$predictor=="Intercept only"),]
 	for(i in 1:nrow(confModSet))
 		{
 		mod<- confModSet$model_indx[i]
@@ -115,92 +123,46 @@ tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 	}
 	if(n==5)
 		{# OPTIMAL DECISIONS FOR FOSTER
-		minPerFish<- 4.6#Foster median nFish/loading time
-		opt_dat<- expand.grid(n= seq(10,350,by=25),
-			fish_per_vol=c(seq(0.1,0.9,by=0.1), seq(1,58,by=1)),
-			truckVolume=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),
-			haulingTime=c(15,30,45,60,75,90,105,120),
-			loadingTime=c(15,30,45,60,75,90,105,120))
-		# EXPECTED LOADING TIME
-		opt_dat$fishPerHaul<- round(opt_dat$truckVolume*opt_dat$fish_per_vol,0)
-		opt_dat$n_trips<- ceiling(opt_dat$n/opt_dat$fishPerHaul)
-		opt_dat$loadingTime<- ifelse(opt_dat$n_trips==1,opt_dat$n*minPerFish, opt_dat$fishPerHaul*minPerFish)
-		opt_dat$tot_time<- scale(opt_dat$loadingTime+opt_dat$haulingTime ,center=160.16, scale=66.99)
-		opt_dat$fish_per_vol<-opt_dat$fishPerHaul
+	
 		
-		# CONFIDENCE MODEL SET.
-		ms<- tables(3)
-		confModSet<- subset(ms[ms$location=="Foster Dam",],(w>0.95 | cum_w<=0.95))	
-		confModSet$w<-confModSet$w/sum(confModSet$w)
-		opt_dat$y<- predict(out_foster[[confModSet$model_indx[1]]],
-			opt_dat,re.form=NA)*confModSet$w[1] 
+	out<- optimal(mortWght=0.5,maxDens=maxDensity)
+	
+	xxx_fos<- out$opt_fos
+	yy<-dcast(xxx_fos,n~truckVolume,value.var="n_trips")
+	x<- as.numeric(names(yy)[-1])
+	y<- yy$n
+	z<-as.matrix(yy[,-1])
+	cols<-rev(c(1:max(na.omit(z)))/(max(na.omit(z))+1))	
+	image.plot(x,y,t(z), col=grey(cols),las=1,
+		xlab="",
+		ylab="",cex.lab=1.5,xaxt='n')
+	axis(1, at=axTicks(1))
+	abline(v=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),col="white",lty=3)
+	mtext(side=2, "Number of fish to outplant",outer=TRUE,line=0.5,cex=1.3)
+	mtext(side=1, "Transport volume (cubic meters)",outer=TRUE,line=0,cex=1.3)
+	
 
-		opt_dat$p<- plogis(opt_dat$y)
-		opt_dat$nn<- ifelse(opt_dat$n_trips==1, opt_dat$n,opt_dat$fishPerHaul)
-		opt_dat$risk<- 1 - pbinom(0,opt_dat$nn,prob=opt_dat$p,lower.tail=TRUE)
-		# DETERMINE HOW LONG PROCESS WILL TAKE IN HOURS
-		opt_dat$dailyTime<- ((opt_dat$loadingTime+opt_dat$haulingTime*2)*opt_dat$n_trips)/60
-		opt_dat<-subset(opt_dat, opt_dat$dailyTime<=10)
-		opt_dat$risk_u<- (opt_dat$risk-max(opt_dat$risk))/(min(opt_dat$risk)-max(opt_dat$risk))
-		opt_dat$time_u<- (opt_dat$dailyTime-max(opt_dat$dailyTime))/(min(opt_dat$dailyTime)-max(opt_dat$dailyTime))
-		opt_dat$truckVolume_gal<- round(opt_dat$truckVolume*264.172,0)
-		opt_dat$U<- 0.5*opt_dat$risk_u+0.5*opt_dat$time_u
-
-		xxx<-dcast(opt_dat,n+truckVolume_gal~"U",max,value.var="U")
-		xxx$dec<-NA
-		for(i in 1:nrow(xxx))
-			{
-			x<- opt_dat[opt_dat$n==xxx$n[i] & 
-				opt_dat$truckVolume_gal==xxx$truckVolume_gal[i] &
-				opt_dat$U == xxx$U[i],] 
-			if(nrow(x)==1){x<-x}
-			if(nrow(x)>1){x<-x[which.max(x$density),]}
-			xxx$dec[i]<-paste(c(x$fishPerHaul, x$n_trips, ceiling(x$loadingTime)),collapse="|")
-			}
-		yyy<- dcast(xxx,n~truckVolume_gal, value.var="dec")
-		return(yyy)
+	yy<-dcast(out$opt_dex,n~truckVolume,value.var="n_trips")
+	x<- as.numeric(names(yy)[-1])
+	y<- yy$n
+	z<-as.matrix(yy[,-1])
+	cols<-rev(c(1:max(na.omit(z)))/(max(na.omit(z))+1))	
+	image.plot(x,y,t(z), col=grey(cols),las=1,
+		xlab="",
+		ylab="",cex.lab=1.5,xaxt='n')
+	axis(1, at=axTicks(1))
+	abline(v=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),col="white",lty=3)
+	mtext(side=2, "Number of fish to outplant",outer=TRUE,line=0.5,cex=1.3)
+	mtext(side=1, "Transport volume (cubic meters)",outer=TRUE,line=0,cex=1.3)	
+	
+	
+		return(out)
 		}
-	if(n==6)
-		{# DEXTER DAM
-		minPerFish<- 0.25#dexter
-		opt_dat<- expand.grid(n= seq(10,350,by=25),
-			fish_per_vol=c(seq(0.1,0.9,by=0.1), seq(1,58,by=1)),
-			truckVolume=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),
-			haulingTime=c(15,30,45,60,75,90,105,120))
-		# EXPECTED LOADING TIME
-		opt_dat$fishPerHaul<- round(opt_dat$truckVolume*opt_dat$fish_per_vol,0)
-		opt_dat$n_trips<- ceiling(opt_dat$n/opt_dat$fishPerHaul)
-		opt_dat$loadingTime<- ifelse(opt_dat$n_trips==1,opt_dat$n*minPerFish, opt_dat$fishPerHaul*minPerFish)
-		# CONFIDENCE MODEL SET.
-		ms<- tables(3)
-		confModSet<- subset(ms[ms$location=="Dexter Dam",],(w>0.95 | cum_w<=0.95))	
-		confModSet$w<-confModSet$w/sum(confModSet$w)
-		opt_dat$y<- predict(out_dexter[[confModSet$model_indx[1]]],opt_dat,re.form=NA)*confModSet$w[1] 
-		opt_dat$p<- plogis(opt_dat$y)
-		opt_dat$nn<- ifelse(opt_dat$n_trips==1, opt_dat$n,opt_dat$fishPerHaul)
-		opt_dat$risk<- 1 - pbinom(0,opt_dat$nn,prob=opt_dat$p,lower.tail=TRUE)
-		# DETERMINE HOW LONG PROCESS WILL TAKE IN HOURS
-		opt_dat$dailyTime<- ((opt_dat$loadingTime+opt_dat$haulingTime*2)*opt_dat$n_trips)/60
-		opt_dat<-subset(opt_dat, opt_dat$dailyTime<=10)
-		opt_dat$risk_u<- (opt_dat$risk-max(opt_dat$risk))/(min(opt_dat$risk)-max(opt_dat$risk))
-		opt_dat$time_u<- (opt_dat$dailyTime-max(opt_dat$dailyTime))/(min(opt_dat$dailyTime)-max(opt_dat$dailyTime))
-		opt_dat$truckVolume_gal<- round(opt_dat$truckVolume*264.172,0)
-		opt_dat$U<- 0.5*opt_dat$risk_u+0.5*opt_dat$time_u
-
-		xxx<-dcast(opt_dat,n+truckVolume_gal~"U",max,value.var="U")
-		xxx$dec<-NA
-		for(i in 1:nrow(xxx))
-			{
-			x<- opt_dat[opt_dat$n==xxx$n[i] & 
-				opt_dat$truckVolume_gal==xxx$truckVolume_gal[i] &
-				opt_dat$U == xxx$U[i],] 
-			if(nrow(x)==1){x<-x}
-			if(nrow(x)>1){x<-x[which.max(x$fish_per_vol),]}
-			xxx$dec[i]<-paste(c(x$fishPerHaul, x$n_trips, ceiling(x$loadingTime)),collapse="|")
-			}
-		yyy<- dcast(xxx,n~truckVolume_gal, value.var="dec")
-		return(yyy)
-		}
+		
+		
+		
+		
+	
 		if(n==99)
 		{# SUMMARY OF NUMBERS OF FISH OUPLANTED 
 		# DAILY SUMMARY
@@ -226,41 +188,5 @@ tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 		overall2$type<- "loadingTime"	
 		overall<- rbind(overall,overall2)	
 		}
-	if(n=="analysis data")
-		{# THIS CODE STANDARIZES PREDICTION TO MEAN 0 AND SD=1
-		out<- trans
-		out<- out[out$waterbody!=-99,]		
-		out$waterbody<- factor(out$waterbody)
-		## create two variables to handle overdispersion
-		out$site_yr = as.factor(paste(out$year,out$location,sep = "_"))
-		out<- out[!is.na(out$mort[,1]),]
-		out$samp = as.factor(c(1:nrow(out)))
-		indx<- match(prds[,1],names(dat_unstd))# columns to standardize
-		
-		# get means and sdd to standarize with same as tbl 2
-		# FOSTER
-		mn<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,mean,na.rm=TRUE)
-		sdd<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,sd,na.rm=TRUE)
-		fos<- as.matrix(cbind(indx,mn,sdd))
-		# DEXTER			
-		mn<- apply(dat_unstd[dat_unstd$location=="Dexter Dam",indx],2,mean,na.rm=TRUE)
-		sdd<- apply(dat_unstd[dat_unstd$location=="Dexter Dam",indx],2,sd,na.rm=TRUE)
-		dex<- as.matrix(cbind(indx,mn,sdd))
-		
-		
-		for(i in indx)
-			{
-			out[out$location=="Foster Dam",i]<- scale(out[out$location=="Foster Dam",i],
-				center= fos[which(fos[,1]==i),2],
-				scale = fos[which(fos[,1]==i),3])
-			out[out$location=="Dexter Dam",i]<- scale(out[out$location=="Dexter Dam",i],
-				center= dex[which(dex[,1]==i),2],
-				scale = dex[which(dex[,1]==i),3])
-			out[,i]<-ifelse(is.na(out[,i]),0,out[,i])
-			}
-		out$doy_sqrd<- out$doy^2
-		out$year<- as.factor(out$year)
-		out$samp<-as.factor(out$samp)
-		return(out)
-		}
+	
 }

@@ -1,80 +1,61 @@
+
 # Figures
 
-```{r,echo=FALSE}
-setwd("C:/Users/mcolvin/Documents/projects/MS-Pallids/analysis")
+```{r,echo=FALSE,warning=FALSE,message=FALSE}
+setwd("C:/Users/mcolvin/Documents/projects/PSM/analyses/Transport-Mortality/analysis/")
 	source("./src/1_global.R")  	
 	source("./src/2_functions.R")         
 	source("./src/3_load.R")     
-  	source("./src/4_clean.R" )
+  	source("./src/4_clean.R")
  	source("./src/5_tables.R") 
 	source("./src/6_figures.R") 
-	source("./src/7_model.R")
+	source("./src/7_models.R")
 ```
 
 
 
-```{r, echo=FALSE,dpi=200,fig.cap=NULL}
-figures(1)
+```{r, echo=FALSE,dpi=300,fig.cap="",warning=FALSE}
+ figures(1)
 ```
-Figure 1.  Lower Mississippi River tempeature and 
-stage over the study period for Catfish Point river segement.
+
+Figure 1.  Study area and location of tributary populations of interest.
+Open squares denote the first impassible major tributary dams.
+The open triangle denotes the location of Willamette Falls.
+Arrow denotes north and direction of river flow.  
 
 
 
-```{r, echo=FALSE,dpi=200,fig.cap=NULL}
+```{r, echo=FALSE,dpi=300,fig.cap="",warning=FALSE}
 figures(2)
 ```
-Figure 2.  Lower Mississippi River tempeature and 
-stage over the study period for Tara to Vicksburg 
-river segement.
+
+Figure 2.  Predictions (solid black line) and 95% prediction interval (gray area) for models
+representing hypotheses predicting the mortality rate of transported Chinook Salmon.
+Panels represent prediction for models retained in the confidence model set for Foster
+(panel a) and Dexter Dam (panel b).  
 
 
 
-```{r, echo=FALSE,dpi=200,fig.cap=NULL}
+```{r, echo=FALSE,dpi=300,fig.cap="",warning=FALSE}
+figures(3)
+```
+
+Figure 3.  Optimal transportation policies for spring-run Chinook Salmon trapped at Foster Dam.
+The white lines denote commonly used tank volumes (300, 1200, 1500, 2000, 2700 gallons) in Upper 
+Willamette River spring-run Chinook Salmon translocation. 
+ 
+NOTE: What is going on here is there is a benefit of more trips because it reduces the loading time,
+The 'flickering' is in part due to ties and how density is handled.  So this is a policy of load up 
+a few fish and go rather than waiting a long time even if fish are at low densities in the truck.
+Loading times are very high for Foster, much higher than Dexter but loaded densities are much lower.
+Figure 3 and Figure 4 are still preliminary as I am working out some of the flickering.
+Although Figure 4 behaves as one would expect and I do not anticipate it changing much.
+ 
+
+```{r, echo=FALSE,dpi=300,fig.cap="",warning=FALSE}
 figures(4)
 ```
-Figure 3.  Predicted habitat availability at varying river 
-stages for Catfish Point (top panel) and Tara to Vicksburg 
-(bottom panel) segments of the lower Mississippi River.  
 
-```{r, echo=FALSE,dpi=200,fig.cap=NULL}
-figures(5)
-```
-Figure 3.  Predicted habitat availability at varying river 
-Temperature at average stage.  Predicted values for the 
-lower Mississippi River segment located at Catfish Point.
-Top panel represents actual probabilities of use and bottom
-panel represents cumlative probabilities.  
-
-```{r, echo=FALSE,dpi=200,fig.cap=NULL}
-figures(6)
-```
-
-Figure 4.  Predicted habitat availability at varying river 
-stage at average temperature.  Predicted values for the 
-lower Mississippi River segment located at Catfish Point.
-Top panel represents actual probabilities of use and bottom
-panel represents cumlative probabilities. .  
-
-
-```{r, echo=FALSE,dpi=200,fig.cap=NULL}
-figures(5)
-```
-
-Figure 5.  Predicted habitat availability at varying river 
-Temperature at average stage.  Predicted values for the 
-lower Mississippi River segment extending from Tara downstream to
-Vicksburg.  Top panel represents actual probabilities of use and bottom
-panel represents cumlative probabilities. 
-
-
-
-
-```{r, echo=FALSE,dpi=200,fig.cap=NULL}
-figures(7)
-```
-Figure 6. Predicted habitat availability at varying river 
-Temperature at average stage.  Predicted values for the 
-lower Mississippi River segment extending from Tara downstream to
-Vicksburg.  Top panel represents actual probabilities of use and bottom
-panel represents cumlative probabilities. 
+Figure 4.  Optimal transportation policies for spring-run Chinook Salmon trapped at Dexter Dam.
+The white lines denote commonly used tank volumes (300, 1200, 1500, 2000, 2700 gallons) in Upper
+Willamette River spring-run Chinook Salmon translocation.  

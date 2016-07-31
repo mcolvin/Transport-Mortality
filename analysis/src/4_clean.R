@@ -112,3 +112,46 @@ trans$mort<-cbind((trans$nLoss + trans$nLikelyLoss), trans$nFish - (trans$nLoss 
 trans<- merge(trans,annual_values, by=c("location","year"))
 trans<- merge(trans, trap_cnt[,c("location","year","doy","trap_total","day_bet")],by=c("location","year","doy"))
 dat_unstd<- trans	
+
+
+## STANDARDIZE DATA PRIOR TO ANALYSIS
+
+out<- trans
+out<- out[out$waterbody!=-99,]		
+out$waterbody<- factor(out$waterbody)
+## create two variables to handle overdispersion
+out$site_yr = as.factor(paste(out$year,out$location,sep = "_"))
+out<- out[!is.na(out$mort[,1]),]
+out$samp = as.factor(c(1:nrow(out)))
+indx<- match(prds[,1],names(dat_unstd))# columns to standardize
+
+# get means and sdd to standarize with same as tbl 2
+# FOSTER
+mn<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,mean,na.rm=TRUE)
+sdd<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,sd,na.rm=TRUE)
+fos<- as.data.frame(cbind(indx,mn,sdd))
+# DEXTER			
+mn<- apply(dat_unstd[dat_unstd$location=="Dexter Dam",indx],2,mean,na.rm=TRUE)
+sdd<- apply(dat_unstd[dat_unstd$location=="Dexter Dam",indx],2,sd,na.rm=TRUE)
+dex<- as.data.frame(cbind(indx,mn,sdd))
+
+
+for(i in indx)
+	{
+	out[out$location=="Foster Dam",i]<- scale(out[out$location=="Foster Dam",i],
+		center= fos[which(fos[,1]==i),2],
+		scale = fos[which(fos[,1]==i),3])
+	out[out$location=="Dexter Dam",i]<- scale(out[out$location=="Dexter Dam",i],
+		center= dex[which(dex[,1]==i),2],
+		scale = dex[which(dex[,1]==i),3])
+	out[,i]<-ifelse(is.na(out[,i]),0,out[,i])
+	}
+out$doy_sqrd<- out$doy^2
+out$year<- as.factor(out$year)
+out$samp<-as.factor(out$samp)
+dat<- out
+
+prds<-rbind(prds,data.frame(pred="1",
+	predictor="Intercept only"))
+
+#aggregate(fish_per_vol~location,dat_unstd,max)

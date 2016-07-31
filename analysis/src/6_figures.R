@@ -31,7 +31,7 @@ if(n==2)
 	
 	## CREATE DATASET TO PLOT FOR FOSTER
 	pdat<- data.frame(x=seq(-3,5,0.01))
-	ntop<-3
+	ntop<-1
 	y_hat<-y_lo<- y_hi<- matrix(0,nrow(pdat), ntop)
 	for(i in 1:ntop)
 		{
@@ -60,7 +60,7 @@ if(n==2)
 	x<-(pdat[,1]*sdd+mn)
 	indx<- which(x>=xlims[1] & x<=xlims[2])
 	plot(x[indx],plogis(y_hat[indx,1]),ylim=c(0,1),type='n',las=1,ylab="",
-		xlab="Total time (minutes)") # total time
+		xlab="Total time (minutes)",cex.lab=1.3) # total time
 	panLab("a) Foster dam")
 	polygon(c(x[indx],rev(x[indx])),c(plogis(y_hi[indx,1]),rev(plogis(y_lo[indx,1]))), col="lightgrey",border="lightgrey")
 	points(x[indx],plogis(y_hat[indx,1]),type='l',lwd=3)
@@ -88,131 +88,85 @@ if(n==2)
 	x<-(pdat[,1]*sdd+mn)
 	indx<- which(x>=xlims[1] & x<=xlims[2])	
 	plot(x[indx],plogis(y_hat[indx,1]),ylim=c(0,1),type='n',las=1,ylab="",
-		xlab="Number of fish per truck volume (no./m3)") 
-	panLab("d) Dexter dam")
+		xlab="Number of fish per truck volume (no./m3)",cex.lab=1.3) 
+	panLab("b) Dexter dam")
 	axis(2,at=axTicks(2), labels=FALSE,las=1)
 	polygon(c(x[indx],rev(x[indx])),c(plogis(y_hi[indx,1]),rev(plogis(y_lo[indx,1]))), col="lightgrey",border="lightgrey")
 	points(x[indx],plogis(y_hat[indx,1]),type='l',lwd=3)
-	mtext(side=2, "Estimated probability of mortality",outer=TRUE, line=0)
+	mtext(side=2, "Estimated probability of mortality",outer=TRUE, line=0,cex=1.3)
 	
 	}
 if(n==3)
 	{
 	# OPTIMAL DECISIONS FOR FOSTER
 	## POLICY PLOT
-	minPerFish<- 4.6 #Foster median nFish/loading time
-	opt_dat<- expand.grid(n= seq(10,150,by=1),
-		density=c(seq(0.1,0.9,by=0.1), seq(1,58,by=1)),
-		truckVolume=seq(1,11,by=0.5),#1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),
-		haulingTime=c(15,30,45,60,75,90,105,120),
-		Q_01=c(0) ,									# 4810.05 (656.22)
-		dd_50=c(0))
 
-	# EXPECTED LOADING TIME
-	opt_dat$fishPerHaul<- round(opt_dat$truckVolume*opt_dat$density,0)
-	opt_dat$n_trips<- ceiling(opt_dat$n/opt_dat$fishPerHaul)
-	opt_dat$loadingTime<- ifelse(opt_dat$n_trips==1,
-		opt_dat$n*minPerFish, 
-		opt_dat$fishPerHaul*minPerFish)
-	opt_dat$nn<- ifelse(opt_dat$n_trips==1, opt_dat$n,opt_dat$fishPerHaul)		
-
-	opt_dat$loadingTime<- scale(opt_dat$loadingTime,center=1.227848e+02, scale=6.839026e+01)
-	# CONFIDENCE MODEL SET.
-	ms<- tables(3)
-	confModSet<- subset(ms[ms$location=="Foster Dam",],(w>0.95 | cum_w<=0.95))	
-	confModSet$w<-confModSet$w/sum(confModSet$w)
-	opt_dat$y<- predict(out_foster[[confModSet$model_indx[1]]],opt_dat,re.form=NA)*confModSet$w[1]
-	opt_dat$p<- plogis(opt_dat$y)
-
+	# FOSTER DAM
 	
-	# PROBALITY OF OBSERVING 1 OR MORE MORTALITIES
-	opt_dat$risk<- 1 - pbinom(0,opt_dat$nn,prob=opt_dat$p,lower.tail=TRUE)
-	opt_dat$risk<-ifelse(opt_dat$n_trips==Inf,1,opt_dat$risk)
-	opt_dat$risk_u<- (opt_dat$risk-max(opt_dat$risk))/(min(opt_dat$risk)-max(opt_dat$risk))		
+	## NO DENSITY CONSTRAINT
+	out1<- optimal(mortWght=0.5,maxDens=8000,maxEffort=12,location="Foster Dam")
+	out2<- optimal(mortWght=0.5,maxDens=maxDensity,maxEffort=12,location="Foster Dam")
+	out3<- optimal(mortWght=0.5,maxDens=8000,maxEffort=12,location="Dexter Dam")
+	out4<- optimal(mortWght=0.5,maxDens=maxDensity,maxEffort=12,location="Dexter Dam")
+	yyfos1<-dcast(out1,n~truckVolume,value.var="n_trips")
+	yyfos2<-dcast(out2,n~truckVolume,value.var="n_trips")
+	yydex1<-dcast(out3,n~truckVolume,value.var="n_trips")
+	yydex2<-dcast(out4,n~truckVolume,value.var="n_trips")
+	dexmax<-max(na.omit(c(unlist(yydex1[,-1]),unlist(yydex2[,-1]))))
+	fosmax<-max(na.omit(c(unlist(yyfos1[,-1]),unlist(yyfos2[,-1]))))
 	
-	# DETERMINE HOW LONG PROCESS WILL TAKE IN HOURS
-	opt_dat$dailyTime<- ((opt_dat$loadingTime+opt_dat$haulingTime*2)*opt_dat$n_trips)/60
-	opt_dat<-subset(opt_dat, opt_dat$dailyTime<=10 & n_trips!=Inf)
-	opt_dat$time_u<- (opt_dat$dailyTime-max(opt_dat$dailyTime))/(min(opt_dat$dailyTime)-max(opt_dat$dailyTime))
-	
-	opt_dat$truckVolume_gal<- round(opt_dat$truckVolume*264.172,0)
-	opt_dat$U<- 0.5*opt_dat$risk_u+0.5*opt_dat$time_u
-	opt_dat$id<- c(1:nrow(opt_dat))
-	
-	xxx<-dcast(opt_dat,n+truckVolume_gal~"U",max,value.var="U")
-	xxx$rid<- c(1:nrow(xxx))
-	xxxx<-merge(xxx,opt_dat, by=c("n","truckVolume_gal","U"))
-	xxxx<- xxxx[order(xxxx$rid,xxxx$density),]
-	xxxx$id<- c(1:nrow(xxxx))
-	out<- ddply(xxxx,.(rid,n,truckVolume),summarize,
-		id=max(id))
-	out<-merge(out,xxxx[,c("n_trips","haulingTime","id")],by="id",all.x=TRUE)
-	out$truckVolume_gal<- round(out$truckVolume*264.172,0)
-	yy<- dcast(out,n~truckVolume,value.var="n_trips")
-	x<- as.numeric(names(yy)[-1])
-	y<- yy$n
-	z<-as.matrix(yy[,-1])
-	cols<- rev(c(1:max(na.omit(z)))/(max(na.omit(z))+1))
-	cols<-c(1:max(na.omit(z)))/(max(na.omit(z))+1)
-	image.plot(x,y,t(z), col=grey(cols),las=1,
-		xlab="Transport volume (cubic meters)",
-		ylab="Number of fish to outplant",cex.lab=1.5)
+	par(mfrow=c(2,2),oma=c(2,2,1,1),mar=c(2,2,0,0))
+	x<- as.numeric(names(yyfos1)[-1])
+	y<- yyfos1$n
+	z<-as.matrix(yyfos1[,-1])
+	brks<- c(1:fosmax)
+	cols<-rev(grey(seq(0,0.9,length.out=length(brks)-1)))
+	image.plot(x,y,t(z), col=cols,las=1,breaks=brks,
+		xlab="",
+		ylab="",cex.lab=1.5,xaxt='n',ylim=c(5,160))
+	axis(1, at=axTicks(1),labels=FALSE)
 	abline(v=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),col="white",lty=3)
-	
-	}
-if(n==4)
-	{
-	# OPTIMAL DECISIONS FOR DEXTER
-	## POLICY PLOT
-		minPerFish<- 0.25#dexter
-	opt_dat<- expand.grid(n= seq(10,400,by=1),
-		density=seq(1,38,by=1),
-		truckVolume=seq(1,11,by=0.5),#1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),
-		haulingTime=c(15,30,45,60,75,90,105,120))
-	opt_dat$fish_per_vol<- scale(opt_dat$density,center=17.01, scale=7.34)
-	# EXPECTED LOADING TIME
-	opt_dat$fishPerHaul<- round(opt_dat$truckVolume*opt_dat$density,0)
-	opt_dat$n_trips<- ceiling(opt_dat$n/opt_dat$fishPerHaul)
-	opt_dat$loadingTime<- ifelse(opt_dat$n_trips==1,opt_dat$n*minPerFish, opt_dat$fishPerHaul*minPerFish)
-	opt_dat$tot_time<- scale(opt_dat$loadingTime+opt_dat$haulingTime ,center=160.16, scale=66.99)
-	# CONFIDENCE MODEL SET.
-	ms<- tables(3)
-	confModSet<- subset(ms[ms$location=="Dexter Dam",],(w>0.95 | cum_w<=0.95))	
-	confModSet$w<-confModSet$w/sum(confModSet$w)
-	opt_dat$y<- predict(out_dexter[[confModSet$model_indx[1]]],opt_dat,re.form=NA)*confModSet$w[1]
-	opt_dat$p<- plogis(opt_dat$y) 
-	
-	opt_dat$nn<- ifelse(opt_dat$n_trips==1, opt_dat$n,opt_dat$fishPerHaul)
-	opt_dat$risk<- 1 - pbinom(0,opt_dat$nn,prob=opt_dat$p,lower.tail=TRUE)
-	# DETERMINE HOW LONG PROCESS WILL TAKE IN HOURS
-	opt_dat$dailyTime<- ((opt_dat$loadingTime+opt_dat$haulingTime*2)*opt_dat$n_trips)/60
-	opt_dat<-subset(opt_dat, opt_dat$dailyTime<=10)
-	opt_dat$risk_u<- (opt_dat$risk-max(opt_dat$risk))/(min(opt_dat$risk)-max(opt_dat$risk))
-	opt_dat$time_u<- (opt_dat$dailyTime-max(opt_dat$dailyTime))/(min(opt_dat$dailyTime)-max(opt_dat$dailyTime))
-	opt_dat$truckVolume_gal<- round(opt_dat$truckVolume*264.172,0)
-	opt_dat$U<- 0.35*opt_dat$risk_u+0.65*opt_dat$time_u
-	opt_dat$id<- c(1:nrow(opt_dat))
-	
-	xxx<-dcast(opt_dat,n+truckVolume_gal~"U",max,value.var="U")
-	xxx$rid<- c(1:nrow(xxx))
-	xxxx<-merge(xxx,opt_dat, by=c("n","truckVolume_gal","U"))
-	xxxx<- xxxx[order(xxxx$rid,xxxx$fish_per_vol),]
-	xxxx$id<- c(1:nrow(xxxx))
-	out<- ddply(xxxx,.(rid,n,truckVolume),summarize,
-		id=max(id))
-	out<-merge(out,xxxx[,c("n_trips","id")],by="id",all.x=TRUE)
-	out$truckVolume_gal<- round(out$truckVolume*264.172,0)
-	yy<- dcast(out,n~truckVolume,value.var="n_trips")
-	x<- as.numeric(names(yy)[-1])
-	y<- yy$n
-	z<-as.matrix(yy[,-1])
-	cols<-c(1:max(na.omit(z)))/(max(na.omit(z))+1)
-	image.plot(x,y,t(z), col=grey(cols),las=1,
-		xlab="Transport volume (cubic meters)",
-		ylab="Number of fish to outplant",cex.lab=1.5)
+	box()
+	## NOAA DENSITY CONSTRAINT
+	x<- as.numeric(names(yyfos2)[-1])
+	y<- yyfos2$n
+	z<-as.matrix(yyfos2[,-1])
+	image.plot(x,y,t(z), col=cols,las=1,breaks=brks,
+		xlab="",
+		ylab="",cex.lab=1.5,xaxt='n',yaxt='n',ylim=c(5,160))
 
 	abline(v=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),col="white",lty=3)
+	axis(1, at=axTicks(1),labels=FALSE)
+	axis(2, at=axTicks(2),labels=FALSE)
+	box()
+
+	# DEXTER
+	## NO DENSITY CONSTRAINT
+	x<- as.numeric(names(yydex1)[-1])
+	y<- yydex1$n
+	z<-as.matrix(yydex1[,-1])
+	brks<- c(0:dexmax)
+	cols<-rev(grey(seq(0,0.9,length.out=length(brks)-1)))
+	image.plot(x,y,t(z), col=cols,las=1,breaks=brks,
+		xlab="",
+		ylab="",cex.lab=1.5)
+	abline(v=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),col="white",lty=3)
+	box()
+	## NOAA DENSITY CONSTRAINT
+	x<- as.numeric(names(yydex2)[-1])
+	y<- yydex2$n
+	z<-as.matrix(yydex2[,-1])
+	image.plot(x,y,t(z), col=cols,las=1,breaks=brks,
+			xlab="",
+			ylab="",cex.lab=1.5,yaxt='n')
+	axis(2, at=axTicks(2),labels=FALSE)
+	abline(v=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),col="white",lty=3)	
+	mtext(side=2, "Number of fish to translocate",outer=TRUE,line=0.75,cex=1.3)
+	mtext(side=1, "Transport truck volume (cubic meters)",outer=TRUE,line=0.8,cex=1.3)
+	box()
+		axis(2, at=axTicks(2),labels=FALSE)
 	}
-		
+	
+
 	
 }

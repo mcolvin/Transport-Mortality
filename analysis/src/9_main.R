@@ -15,6 +15,34 @@ source("./src/8_analysis.R")
 	
 	
 	
+fit<-glmer(mort~loadingTime+Q_01+dd_01+(1|samp), 
+		data = dat,
+		family=binomial,
+		subset=location=="Foster Dam",
+		control=glmerControl(optimizer="bobyqa"))	
+
+figures(3)# OPTIMAL POLICIES FOR FOSTER AN DEXTER
+savePlot("./figures/figure-4-opt-haul-plot.wmf",type="wmf")
+
+
+setwd("C:/Users/mcolvin/Documents/projects/PSM/analyses/Transport-Mortality/analysis/")
+topdir<- "C:/Users/mcolvin/Documents/projects/PSM/analyses/Transport-Mortality"
+# COMPILE FIGURES TO DOCX
+knitr::knit("./src/2_figures.Rmd")	
+knitr::pandoc('2_figures.md', format='docx')
+file.copy("2_figures.docx", paste0(topdir,"/2_figures.docx"),overwrite=TRUE)
+file.remove("2_figures.docx");file.remove("./2_figures.md")
+
+# COMPILE TABLES TO DOCX
+knitr::knit("./src/3_tables.Rmd")	
+knitr::pandoc('3_tables.md', format='docx')
+file.copy("./3_tables.docx",paste0(topdir,"/3_tables.docx"),overwrite=TRUE)
+file.remove("./3_tables.docx");file.remove("./3_tables.md")	
+
+
+ 
+	
+	
 	figures(1)
 	savePlot("./figures/01_study_area.wmf",type="wmf")
 	
@@ -26,6 +54,10 @@ source("./src/8_analysis.R")
 	figures(3)
 	figures(4)
 	# want a plot of 'predicted' effect to show how small it is..
+	
+	figures(7)# policy plot for foster
+	figures(8)# polica plot for dexter
+	
 	
 	## TABLES
 	tbl2<- tables(2)# means
