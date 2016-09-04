@@ -36,7 +36,8 @@ tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 	if(n==3)
 		{# TABLE OF MODEL SELECTION 
 		## FOSTER
-		tmp<-as.data.frame(t(sapply(1:length(out_foster), function(x) summary(out_foster[[x]])$AICtab)))
+		tmp<-as.data.frame(t(sapply(1:length(out_foster), 
+			function(x) summary(out_foster[[x]])$AICtab)))
 		tmp$model<- sapply(1:length(out_foster), function(x){
 			tmp<- paste(as.character(summary(out_foster[[x]])$call$formula),collapse="~")
 			return(substr(tmp,2,nchar(tmp)))})
@@ -123,39 +124,37 @@ tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 	}
 	if(n==5)
 		{# OPTIMAL DECISIONS FOR FOSTER
-	
+		out<- optimal(mortWght=0.5,maxDens=maxDensity)
 		
-	out<- optimal(mortWght=0.5,maxDens=maxDensity)
-	
-	xxx_fos<- out$opt_fos
-	yy<-dcast(xxx_fos,n~truckVolume,value.var="n_trips")
-	x<- as.numeric(names(yy)[-1])
-	y<- yy$n
-	z<-as.matrix(yy[,-1])
-	cols<-rev(c(1:max(na.omit(z)))/(max(na.omit(z))+1))	
-	image.plot(x,y,t(z), col=grey(cols),las=1,
-		xlab="",
-		ylab="",cex.lab=1.5,xaxt='n')
-	axis(1, at=axTicks(1))
-	abline(v=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),col="white",lty=3)
-	mtext(side=2, "Number of fish to outplant",outer=TRUE,line=0.5,cex=1.3)
-	mtext(side=1, "Transport volume (cubic meters)",outer=TRUE,line=0,cex=1.3)
-	
+		xxx_fos<- out$opt_fos
+		yy<-dcast(xxx_fos,n~truckVolume,value.var="n_trips")
+		x<- as.numeric(names(yy)[-1])
+		y<- yy$n
+		z<-as.matrix(yy[,-1])
+		cols<-rev(c(1:max(na.omit(z)))/(max(na.omit(z))+1))	
+		image.plot(x,y,t(z), col=grey(cols),las=1,
+			xlab="",
+			ylab="",cex.lab=1.5,xaxt='n')
+		axis(1, at=axTicks(1))
+		abline(v=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),col="white",lty=3)
+		mtext(side=2, "Number of fish to outplant",outer=TRUE,line=0.5,cex=1.3)
+		mtext(side=1, "Transport volume (cubic meters)",outer=TRUE,line=0,cex=1.3)
+		
 
-	yy<-dcast(out$opt_dex,n~truckVolume,value.var="n_trips")
-	x<- as.numeric(names(yy)[-1])
-	y<- yy$n
-	z<-as.matrix(yy[,-1])
-	cols<-rev(c(1:max(na.omit(z)))/(max(na.omit(z))+1))	
-	image.plot(x,y,t(z), col=grey(cols),las=1,
-		xlab="",
-		ylab="",cex.lab=1.5,xaxt='n')
-	axis(1, at=axTicks(1))
-	abline(v=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),col="white",lty=3)
-	mtext(side=2, "Number of fish to outplant",outer=TRUE,line=0.5,cex=1.3)
-	mtext(side=1, "Transport volume (cubic meters)",outer=TRUE,line=0,cex=1.3)	
-	
-	
+		yy<-dcast(out$opt_dex,n~truckVolume,value.var="n_trips")
+		x<- as.numeric(names(yy)[-1])
+		y<- yy$n
+		z<-as.matrix(yy[,-1])
+		cols<-rev(c(1:max(na.omit(z)))/(max(na.omit(z))+1))	
+		image.plot(x,y,t(z), col=grey(cols),las=1,
+			xlab="",
+			ylab="",cex.lab=1.5,xaxt='n')
+		axis(1, at=axTicks(1))
+		abline(v=c(1.135623,4.542492,5.678115,7.57082,9.463525,10.220607),col="white",lty=3)
+		mtext(side=2, "Number of fish to outplant",outer=TRUE,line=0.5,cex=1.3)
+		mtext(side=1, "Transport volume (cubic meters)",outer=TRUE,line=0,cex=1.3)	
+		
+		
 		return(out)
 		}
 		

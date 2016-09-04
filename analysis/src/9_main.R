@@ -1,5 +1,3 @@
-# TO DO
- 
 
 setwd("C:/Users/mcolvin/Documents/projects/PSM/analyses/Transport-Mortality/analysis/")
 
@@ -13,16 +11,22 @@ source("./src/7_models.R")
 	
 source("./src/8_analysis.R")
 	
+figures(1)
+savePlot("./figures/study-area.wmf",type="wmf")
+## PREDICTED RESPONSES	
+figures(2.1)# foster
+savePlot("./figures/foster_predicted.wmf",
+	type='wmf')
+figures(2.2)# dexter
+savePlot("./figures/dexter_predicted.wmf",
+	type='wmf')
 	
 	
-fit<-glmer(mort~loadingTime+Q_01+dd_01+(1|samp), 
-		data = dat,
-		family=binomial,
-		subset=location=="Foster Dam",
-		control=glmerControl(optimizer="bobyqa"))	
-
 figures(3)# OPTIMAL POLICIES FOR FOSTER AN DEXTER
 savePlot("./figures/figure-4-opt-haul-plot.wmf",type="wmf")
+
+write.csv(tables(3), "./tables/tbl3-model-selection.csv")
+write.csv(tables(4),"./tables/tbl4-model-estimates.csv")
 
 
 setwd("C:/Users/mcolvin/Documents/projects/PSM/analyses/Transport-Mortality/analysis/")

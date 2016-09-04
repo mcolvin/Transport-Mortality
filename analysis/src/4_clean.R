@@ -129,11 +129,15 @@ indx<- match(prds[,1],names(dat_unstd))# columns to standardize
 # FOSTER
 mn<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,mean,na.rm=TRUE)
 sdd<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,sd,na.rm=TRUE)
-fos<- as.data.frame(cbind(indx,mn,sdd))
+mnn<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,min,na.rm=TRUE)
+mxx<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,max,na.rm=TRUE)
+fos<- as.data.frame(cbind(indx,mn,sdd,mnn,mxx))
 # DEXTER			
 mn<- apply(dat_unstd[dat_unstd$location=="Dexter Dam",indx],2,mean,na.rm=TRUE)
 sdd<- apply(dat_unstd[dat_unstd$location=="Dexter Dam",indx],2,sd,na.rm=TRUE)
-dex<- as.data.frame(cbind(indx,mn,sdd))
+mnn<- apply(dat_unstd[dat_unstd$location=="Dexter Dam",indx],2,min,na.rm=TRUE)
+mxx<- apply(dat_unstd[dat_unstd$location=="Dexter Dam",indx],2,max,na.rm=TRUE)
+dex<- as.data.frame(cbind(indx,mn,sdd,mnn,mxx))
 
 
 for(i in indx)

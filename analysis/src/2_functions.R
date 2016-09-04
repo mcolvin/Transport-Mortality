@@ -10,7 +10,8 @@ mort_risk<- function(x,nn,p)
 optimal<- function(mortWght=0.5,maxDens=200,maxEffort=200,location="Dexter Dam")
 	{
 	ms<- tables(3)
-	confModSet<- subset(ms[ms$location==location,],(w>0.95 | cum_w<=0.95))	
+	confModSet<- ms[ms$location==location,]	
+	confModSet<- confModSet[1:(which(confModSet$predictor=="Intercept only")-1),]	
 	confModSet$w<-confModSet$w/sum(confModSet$w)	
 
 	minPerFish<- ifelse(location=="Foster Dam",4.6,0.25) #Foster median nFish/loading time
@@ -51,14 +52,35 @@ optimal<- function(mortWght=0.5,maxDens=200,maxEffort=200,location="Dexter Dam")
 		{
 		fish$loadingTime_raw<- fish$nfishx*minPerFish
 		fish$fish_per_vol<- fish$nfishx/fish$truckVolume
-		fish$loadingTime <-scale(fish$loadingTime_raw,
+		fish$haulingTime_raw<- fos['loadingTime',]$mn
+		fish$dd_01_raw<- fos['dd_01',]$mn
+		fish$Q_01_raw<- fos['Q_01',]$mn
+		
+		fish$loadingTime<-scale(fish$loadingTime_raw,
 			center=fos['loadingTime',]$mn, 
 				scale=fos['loadingTime',]$sdd)
-		fish$y<-predict(out_foster[[confModSet$model_indx[1]]],
-			fish,re.form=NA)*confModSet$w[1] 			
+		fish$tot_time <-scale((fish$loadingTime_raw+fish$loadingTime_raw),
+			center=fos['tot_time',]$mn, 
+			scale=fos['tot_time',]$sdd) 
+		fish$dd_01 <-scale((fish$dd_01_raw),
+			center=fos['dd_01',]$mn, 
+			scale=fos['dd_01',]$sdd) 
+		fish$Q_01 <-scale((fish$Q_01_raw),
+			center=fos['Q_01',]$mn, 
+			scale=fos['Q_01',]$sdd) 
+			
+				
+		fish$y1<-predict(out_foster[[confModSet$model_indx[1]]],
+			fish,re.form=NA)*confModSet$w[1] 	
+		fish$y2<-predict(out_foster[[confModSet$model_indx[2]]],
+			fish,re.form=NA)*confModSet$w[2] 	
+		fish$y3<-predict(out_foster[[confModSet$model_indx[3]]],
+			fish,re.form=NA)*confModSet$w[3] 				
+		fish$y4<-predict(out_foster[[confModSet$model_indx[4]]],
+			fish,re.form=NA)*confModSet$w[4] 	
+		fish$y<- fish$y1+fish$y2+fish$y3+fish$y4
 		}
-
-
+		
 	fish$p<- plogis(fish$y)		
 	fish$risk<- pbinom(0,fish$nfishx,prob=fish$p,lower.tail=TRUE)
 	
