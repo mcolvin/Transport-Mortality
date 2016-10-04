@@ -123,7 +123,7 @@ out$waterbody<- factor(out$waterbody)
 out$site_yr = as.factor(paste(out$year,out$location,sep = "_"))
 out<- out[!is.na(out$mort[,1]),]
 out$samp = as.factor(c(1:nrow(out)))
-indx<- match(prds[,1],names(dat_unstd))# columns to standardize
+indx<- match(prds[prds$standardize==1,1],names(dat_unstd))# columns to standardize
 
 # get means and sdd to standarize with same as tbl 2
 # FOSTER
@@ -153,9 +153,10 @@ for(i in indx)
 out$doy_sqrd<- out$doy^2
 out$year<- as.factor(out$year)
 out$samp<-as.factor(out$samp)
+out$trip_no<- as.factor(out$trip_no)
 dat<- out
 
 prds<-rbind(prds,data.frame(pred="1",
-	predictor="Intercept only"))
+	predictor="Intercept only",standardize=0))
 
 #aggregate(fish_per_vol~location,dat_unstd,max)

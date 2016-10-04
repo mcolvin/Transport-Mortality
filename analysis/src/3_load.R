@@ -31,6 +31,7 @@ prds<-matrix(c(
 	"maxT_C",	"Maximum daily air temperature (C)",	
 	"day_bet","Average number of days since last trap tending",
 	"cloudcover","Cloud cover index",
+	#"waterTempRelease", "Water temperature at liberation site",
 # Run size, timing, and tributary conditions
 	"run_size","Run size",	
 	"doy50","Day of the year 50% of run passed Willamette Falls",
@@ -41,6 +42,9 @@ prds<-matrix(c(
 
 prds<- as.data.frame(prds,stringsAsFactors = FALSE)
 names(prds)<- c("pred","predictor")
+prds$standardize<- 1
+prds[prds$pred %in% c("trip_no"),]$standardize<-0
+
 
 
 spfiles<- function()
