@@ -24,6 +24,7 @@ prds<-matrix(c(
 	"nFish" ,"Number of fish transported",
 	"fish_per_vol","Number of fish per truck volume (no./m3)",
 	"delta_temp","Difference in temperature between collection facility and tank (C)",
+	"delta_trip_temp","Difference in temperature trip (C)",
 # Trap and loading conditions
 	"doy","Day of the year transported",
 	"trap_total","Number of fish in trap",# number in trap

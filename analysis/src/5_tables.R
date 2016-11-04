@@ -7,8 +7,8 @@ tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 	if(n==2)
 		{# TABLE OF MEANS, STD. DEVS, MINIMUMS, AND MAXIMUMS
 		### now standardize predictors
-			
-		indx<- match(prds[,1],names(dat_unstd))# columns to standardize
+		prds<- prds[-which(prds$pred==1),]	
+		indx<- na.omit(match(prds[,1],names(dat_unstd)))# columns to standardize
 		
 		# FOSTER
 		mn<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,mean,na.rm=TRUE)

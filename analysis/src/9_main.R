@@ -11,6 +11,11 @@ source("./src/7_models.R")
 	
 source("./src/8_analysis.R")
 	
+    plot(trans$waterTempStart-trans$waterTempEnd,        
+(trans$nLoss+trans$nLikelyLoss)/trans$nFish   )
+    
+    
+    
 figures(1)
 savePlot("./figures/study-area.wmf",type="wmf")
 ## PREDICTED RESPONSES	

@@ -105,6 +105,7 @@ for(i in 2:nrow(trans))
 	}
 trans$tot_time<- trans$loadingTime+trans$haulingTime
 trans$delta_temp<- trans$waterTempEnd- trans$waterTempCollSite
+trans$delta_trip_temp<- trans$waterTempEnd-trans$waterTempStart
 trans$fish_per_vol<- trans$nFish/trans$truckVolume
 
 ## create response variable DO THIS BEFORE STANDARDIZING DATA!!!
