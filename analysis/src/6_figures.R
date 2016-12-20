@@ -48,12 +48,14 @@ if(n==2.1)
 	ntop<-1:(which(grr_foster$predictor=="Intercept only")-1)
 	y_hat<-y_lo<- y_hi<- matrix(0,nrow(pdat), length(ntop))
 	vv<-c()
+	predictor<-c()
 	for(i in ntop)
 		{
 		mod<- grr_foster$model_indx[i]
 		mm<- paste("~",paste(names(fixef(out_foster[[mod]]))[-1],collapse="+"))
 		names(pdat)<- names(fixef(out_foster[[mod]]))[-1]	
 		vv<-c(vv,mod)
+        predictor<-c(predictor,names(fixef(out_foster[[mod]]))[-1])
 		mm<- model.matrix(as.formula(mm),pdat)	
 		y_hat[,i]<- mm%*%fixef(out_foster[[mod]])	
 		pvar1 <- diag(mm %*% tcrossprod(as.matrix(vcov(out_foster[[mod]])),mm)) # prediction variance
@@ -72,10 +74,11 @@ if(n==2.1)
 		par(mfrow=c(2,2),mar=c(4,3,0.25,0),oma=c(1,2,1,1))	
 		# FOSTER 1
 		mm<-1
-		mn<-fos$mn[vv[mm]]
-		sdd<- fos$sdd[vv[mm]]
-		xlims=c(fos$mnn[vv[mm]],fos$mxx[vv[mm]])	
-		x<-(pdat[,1]*sdd+mn)
+        indx<- which(predictor[mm]==rownames(fos))
+		mn<-fos$mn[indx]
+		sdd<- fos$sdd[indx]
+		xlims=c(fos$mnn[indx],fos$mxx[indx])
+        x<-(pdat[,1]*sdd+mn)
 		indx<- which(x>=xlims[1] & x<=xlims[2])
 		plot(x[indx],
 			plogis(y_hat[indx,mm]),
@@ -87,12 +90,15 @@ if(n==2.1)
 		polygon(c(x[indx],rev(x[indx])),c(plogis(y_hi[indx,mm]),
 			rev(plogis(y_lo[indx,mm]))), col="lightgrey",border="lightgrey")
 		points(x[indx],plogis(y_hat[indx,mm]),type='l',lwd=3)	
+   
+        points(p_mort~loadingTime, dat_unstd, subset=location=="Foster Dam",col='black')
 
 		# FOSTER 2
 		mm<-2
-		mn<-fos$mn[vv[mm]]
-		sdd<- fos$sdd[vv[mm]]
-		xlims=c(fos$mnn[vv[mm]],fos$mxx[vv[mm]])	
+        indx<- which(predictor[mm]==rownames(fos))
+		mn<-fos$mn[indx]
+		sdd<- fos$sdd[indx]
+		xlims=c(fos$mnn[indx],fos$mxx[indx])	
 		x<-(pdat[,1]*sdd+mn)
 		indx<- which(x>=xlims[1] & x<=xlims[2])
 		plot(x[indx],
@@ -105,12 +111,14 @@ if(n==2.1)
 		polygon(c(x[indx],rev(x[indx])),c(plogis(y_hi[indx,mm]),
 			rev(plogis(y_lo[indx,mm]))), col="lightgrey",border="lightgrey")
 		points(x[indx],plogis(y_hat[indx,mm]),type='l',lwd=3)	
+	    points(p_mort~tot_time, dat_unstd, subset=location=="Foster Dam",col='black')	
 		
-		# FOSTER 3
+        # FOSTER 3
 		mm<-3
-		mn<-fos$mn[vv[mm]]
-		sdd<- fos$sdd[vv[mm]]
-		xlims=c(fos$mnn[vv[mm]],fos$mxx[vv[mm]])	
+	    indx<- which(predictor[mm]==rownames(fos))
+		mn<-fos$mn[indx]
+		sdd<- fos$sdd[indx]
+		xlims=c(fos$mnn[indx],fos$mxx[indx])
 		x<-(pdat[,1]*sdd+mn)
 		indx<- which(x>=xlims[1] & x<=xlims[2])
 		plot(x[indx],
@@ -118,17 +126,20 @@ if(n==2.1)
 			ylim=c(0,1),
 			type='n',las=1,ylab="",
 			xlab=expression(paste("Mean daily discharge (m"^3,"/s)")),
-			cex.lab=1.3) # total time
+			cex.lab=1.3) 
 		panLab("c) Mean daily discharge first")
 		polygon(c(x[indx],rev(x[indx])),c(plogis(y_hi[indx,mm]),
 			rev(plogis(y_lo[indx,mm]))), col="lightgrey",border="lightgrey")
 		points(x[indx],plogis(y_hat[indx,mm]),type='l',lwd=3)	
-		
+	    points(p_mort~Q_01, dat_unstd, subset=location=="Foster Dam",col='black')	
+		head(dat_unstd[dat_unstd$location=="Foster Dam",])
+
 		# FOSTER 4
 		mm<-4
-		mn<-fos$mn[vv[mm]]
-		sdd<- fos$sdd[vv[mm]]
-		xlims=c(fos$mnn[vv[mm]],fos$mxx[vv[mm]])	
+        indx<- which(predictor[mm]==rownames(fos))
+		mn<-fos$mn[indx]
+		sdd<- fos$sdd[indx]
+		xlims=c(fos$mnn[indx],fos$mxx[indx])
 		x<-(pdat[,1]*sdd+mn)
 		indx<- which(x>=xlims[1] & x<=xlims[2])
 		plot(x[indx],
@@ -142,6 +153,8 @@ if(n==2.1)
 			rev(plogis(y_lo[indx,mm]))), col="lightgrey",border="lightgrey")
 		points(x[indx],plogis(y_hat[indx,mm]),type='l',lwd=3)	
 		mtext(side=2, "Predicted probability of mortality",outer=TRUE,line=0,cex=1.3)
+   	    points(p_mort~dd_01, dat_unstd, subset=location=="Foster Dam",col='black')	     
+        
 		}
 	if(n==2.2)
 		{
@@ -179,6 +192,7 @@ if(n==2.1)
 			c(plogis(y_hi[indx,1]),rev(plogis(y_lo[indx,1]))), 
 			col="lightgrey",border="lightgrey")
 		points(x[indx],plogis(y_hat[indx,1]),type='l',lwd=3)
+        points(p_mort~fish_per_vol, dat_unstd, subset=location=="Dexter Dam",col='black')	
 		}
 if(n==3)
 	{

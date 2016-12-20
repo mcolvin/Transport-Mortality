@@ -10,6 +10,15 @@ tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 		prds<- prds[-which(prds$pred==1),]	
 		indx<- na.omit(match(prds[,1],names(dat_unstd)))# columns to standardize
 		
+        
+#        aggregate(mort~location,dat_unstd,mean)
+ #       aggregate(mort~location,dat_unstd,sd)
+  #      aggregate(mort~location,dat_unstd,max)
+   #     aggregate(mort[,1]/mort[,2]~location,dat_unstd,mean,subset=mort[,2]>0) 
+    #    aggregate(mort[,1]/mort[,2]~location,dat_unstd,sd,subset=mort[,2]>0) 
+     #   aggregate(mort[,1]/mort[,2]~location,dat_unstd,max,subset=mort[,2]>0) 
+        
+
 		# FOSTER
 		mn<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,mean,na.rm=TRUE)
 		sdd<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,sd,na.rm=TRUE)

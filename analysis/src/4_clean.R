@@ -113,7 +113,7 @@ trans$mort<-cbind((trans$nLoss + trans$nLikelyLoss), trans$nFish - (trans$nLoss 
 trans<- merge(trans,annual_values, by=c("location","year"))
 trans<- merge(trans, trap_cnt[,c("location","year","doy","trap_total","day_bet")],by=c("location","year","doy"))
 dat_unstd<- trans	
-
+dat_unstd$p_mort<- dat_unstd$mort[,1]/dat_unstd$mort[,2]
 
 ## STANDARDIZE DATA PRIOR TO ANALYSIS
 
