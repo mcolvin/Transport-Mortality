@@ -9,15 +9,6 @@ tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 		### now standardize predictors
 		prds<- prds[-which(prds$pred==1),]	
 		indx<- na.omit(match(prds[,1],names(dat_unstd)))# columns to standardize
-		
-        
-#        aggregate(mort~location,dat_unstd,mean)
- #       aggregate(mort~location,dat_unstd,sd)
-  #      aggregate(mort~location,dat_unstd,max)
-   #     aggregate(mort[,1]/mort[,2]~location,dat_unstd,mean,subset=mort[,2]>0) 
-    #    aggregate(mort[,1]/mort[,2]~location,dat_unstd,sd,subset=mort[,2]>0) 
-     #   aggregate(mort[,1]/mort[,2]~location,dat_unstd,max,subset=mort[,2]>0) 
-        
 
 		# FOSTER
 		mn<- apply(dat_unstd[dat_unstd$location=="Foster Dam",indx],2,mean,na.rm=TRUE)
@@ -43,7 +34,8 @@ tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 		return(out)
 		}
 	if(n==3)
-		{# TABLE OF MODEL SELECTION 
+		{
+        # TABLE OF MODEL SELECTION 
 		## FOSTER
 		tmp<-as.data.frame(t(sapply(1:length(out_foster), 
 			function(x) summary(out_foster[[x]])$AICtab)))
