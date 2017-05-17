@@ -1,7 +1,17 @@
+---
+title: "Quantifying effort and distribution of PSPAP gears"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:  
+  html_document:
+    theme: readable
+    highlight: tango
+---
 
+<!--
+rmarkdown::render("index.Rmd")# build page
+-->
 
-setwd("C:/Users/mcolvin/Documents/projects/PSM/analyses/Transport-Mortality/analysis/")
-
+```{r,echo=FALSE,warning=FALSE, message=FALSE}
 source("./src/1_global.R") 	
 source("./src/2_functions.R")         
 source("./src/3_load.R")     
@@ -9,6 +19,9 @@ source("./src/4_clean.R" )
 source("./src/5_tables.R") 
 source("./src/6_figures.R")  	
 source("./src/7_models.R")
+```
+
+
 	
 source("./src/8_analysis.R")
 	
@@ -91,6 +104,110 @@ file.remove("./3_tables.docx");file.remove("./3_tables.md")
 	# OPIMAL DECISION FOR DEXTER
 	tbl6<- tables(6)
 	write.csv(tbl6, "./output/tbl6.csv",row.names = FALSE)
+
+
+# Figures
+
+```{r,echo=FALSE,warning=FALSE,message=FALSE}
+setwd("C:/Users/mcolvin/Documents/projects/PSM/analyses/Transport-Mortality/analysis/")
+	source("./src/1_global.R")  	
+	source("./src/2_functions.R")         
+	source("./src/3_load.R")     
+  	source("./src/4_clean.R")
+ 	source("./src/5_tables.R") 
+	source("./src/6_figures.R") 
+	source("./src/7_models.R")
+```
+
+
+
+```{r, echo=FALSE,dpi=300,fig.cap="",warning=FALSE}
+ figures(1)
+```
+
+Figure 1.  Study area and location of tributary populations of interest.
+Open squares denote the first impassible major tributary dams.
+The open triangle denotes the location of Willamette Falls.
+Arrow denotes north and direction of river flow.  
+
+
+
+```{r, echo=FALSE,dpi=300,fig.cap="",warning=FALSE}
+figures(2)
+```
+
+Figure 2.  Predictions (solid black line) and 95% prediction interval (gray area) for models
+representing hypotheses predicting the mortality rate of transported Chinook Salmon.
+Panels represent prediction for models retained in the confidence model set for Foster
+(panel a) and Dexter Dam (panel b).  
+
+
+
+```{r, echo=FALSE,dpi=300,fig.cap="",warning=FALSE}
+figures(3)
+```
+
+Figure 3.  Optimal transportation policies for spring-run Chinook Salmon trapped at Foster Dam.
+The white lines denote commonly used tank volumes (300, 1200, 1500, 2000, 2700 gallons) in Upper 
+Willamette River spring-run Chinook Salmon translocation. 
+ 
+NOTE: What is going on here is there is a benefit of more trips because it reduces the loading time,
+The 'flickering' is in part due to ties and how density is handled.  So this is a policy of load up 
+a few fish and go rather than waiting a long time even if fish are at low densities in the truck.
+Loading times are very high for Foster, much higher than Dexter but loaded densities are much lower.
+Figure 3 and Figure 4 are still preliminary as I am working out some of the flickering.
+Although Figure 4 behaves as one would expect and I do not anticipate it changing much.
+ 
+
+```{r, echo=FALSE,dpi=300,fig.cap="",warning=FALSE}
+figures(4)
+```
+
+Figure 4.  Optimal transportation policies for spring-run Chinook Salmon trapped at Dexter Dam.
+The white lines denote commonly used tank volumes (300, 1200, 1500, 2000, 2700 gallons) in Upper
+Willamette River spring-run Chinook Salmon translocation.      
+    
+# Tables
+
+Table 1.  Candidate explanatory variables, descriptions, and hypotheses. 
+
+```{r, echo=FALSE}
+tbl1<- tables(1)
+kable(tbl1,digits=2,caption = NULL,row.names=FALSE,align=c('l','l','l'),
+	col.names=c("Predictor type","Predictor","Description and hypothesis"))
+```
+
+Table 2. Summary of candidate variable used to evaluate the factors related to Chinook Salmon transport mortality in the Upper Willamette Basin.
+
+```{r, echo=FALSE}
+tbl2<- tables(2)
+kable(tbl2,digits=2,caption = NULL,row.names=FALSE)
+```
+
+Table 3. Candidate models and model selection criteria for the set of candidate models for 
+adult spring Chinook Salmon transport mortality. All models contained an intercept and 
+a random effect of sample in addition to the variable being evaluated.  Models retained for 
+full model; cumulative model weight = 0.95.
+
+```{r, echo=FALSE}
+tbl3<- tables(3)
+kable(tbl3,digits=2,caption = NULL,row.names=FALSE)
+```
+
+ 
+  
+  
+  
+  
+Table 4. Parameter estimates and 95% confidence limits (CL) of fixed and random effects 
+for best approximating model of adult Chinook Salmon transport mortality. 
+Random effects are variance components. 
+
+```{r, echo=FALSE,warining=FALSE,message=FALSE}
+tbl4<- tables(4)
+kable(tbl4,digits=2,caption = NULL,row.names=FALSE)
+```
+
 	
 
 # Tables
