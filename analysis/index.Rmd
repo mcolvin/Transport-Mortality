@@ -9,6 +9,9 @@ output:
 
 <!--
 rmarkdown::render("index.Rmd")# build page
+
+* see line 78 need to link predictions and numbers ouplanted
+and then discretized
 -->
 
 ```{r,echo=FALSE,warning=FALSE, message=FALSE}
@@ -34,34 +37,49 @@ ms<- tables(3) # GET MODEL SELECTION RESULTS
 confModSet<- subset(ms[ms$location=="Foster Dam",])
 # prds MOST ARE STANDARDIZED THEREFORE -2,-1,0,1,2
 # data.frame TO GENERATE STOCHASTIC REALIZATIONS OF INPUTS
-
+confModSet<- merge(confModSet,prds,by="predictor",all.x=TRUE)
 n<- 10000
 
-pdat<- lapply(1:nrow(prds),function(x)
+pdat<- lapply(1:nrow(confModSet),function(x)
     {
-    if(prds$standardize[x]==1){xx<-runif(n,-2,2)}
-    if(prds$standardize[x]==0 & prds$pred[x]!=1){xx<-sample(unique(dat$trip_no),
+    if(confModSet$standardize[x]==1){xx<-runif(n,-2,2)}
+    if(confModSet$standardize[x]==0 & confModSet$pred[x]!=1){xx<-sample(c(1:4),
         n,replace=TRUE)}
-    if(prds$standardize[x]==0 & prds$pred[x]==1){xx<-rep(1,n)}  
+    if(confModSet$standardize[x]==0 & confModSet$pred[x]==1){xx<-rep(1,n)}  
     return(xx)
     })
 ## COMBINE UP AND CREATE A DATA.FRAME
+## TO PREDICT SURVIVALS FOR
 yy<- as.data.frame(do.call("cbind",pdat))
-names(yy)<- prds$pred
+## NAMES FOR MODEL.MATRIX
+names(yy)<- confModSet$pred 
+yy$trip_no<- as.factor(yy$trip_no)
+## MATRIX OF PROBABILITIES TO SIMULATE OUTCOMES
+y_hat<-matrix(0,nrow=n,ncol=nrow(confModSet))
 
-## 
-y<-matrix(0,nrow=n,ncol=nrow(prds))
-pdat<- lapply(1:ncol(yy),function(x)
+## SIMUALATE OUTCOMES
+for(i in 1:length(confModSet$model_indx))
     {
-    mm<- paste("~",paste(names(yy[x]),collapse="+"))
-    mm<- model.matrix(as.formula(mm),yy)	
-    y_hat[,x]<- mm%*%fixef(out_foster[[mod]])	
-    pvar1 <- diag(mm %*% tcrossprod(as.matrix(vcov(out_dexter[[mod]])),mm))
-    tvar1 <- pvar1+VarCorr(out_dexter[[mod]])$samp[1] 
-    y_lo[,i]<- y_hat[,i]-2*(sqrt(tvar1))
-    y_hi[,i]<- y_hat[,i]+2*(sqrt(tvar1))    
-    })
+    print(i)
+    mm<- paste("~",paste(confModSet$pred[i],collapse="+"))
+    mm<- model.matrix(as.formula(mm),yy)   
+    
+    ## INDEX FOR MODEL OUTPUT
+    x<- confModSet$model_indx[i]
+    pvar1 <- diag(mm %*% tcrossprod(as.matrix(vcov(out_foster[[x]])),mm))
+    tvar1 <- pvar1+VarCorr(out_foster[[x]])$samp[1] 
+    y_hat[,x]<- plogis(rnorm(n,mm%*%fixef(out_foster[[x]]),tvar1))
+    }
+    
+# NUMBER OF FISH TO TRANSLOCATE
 
+ntrap<- seq(0,max(dat_unstd[dat_unstd$location=='Foster Dam',]$trap_total),
+    by=10)
+
+lapply(1:ncol(y_hat),function(x)
+        {
+        y_hat[,x]<-rbinom(n,
+        })
 
 
 
