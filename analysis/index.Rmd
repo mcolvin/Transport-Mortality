@@ -1,5 +1,5 @@
 ---
-title: "Quantifying effort and distribution of PSPAP gears"
+title: "Transport ARM"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:  
   html_document:
@@ -11,7 +11,7 @@ output:
 rmarkdown::render("index.Rmd")# build page
 
 * see line 78 need to link predictions and numbers ouplanted
-and then discretized
+and then discretize
 -->
 
 ```{r,echo=FALSE,warning=FALSE, message=FALSE}
@@ -38,7 +38,10 @@ confModSet<- subset(ms[ms$location=="Foster Dam",])
 # prds MOST ARE STANDARDIZED THEREFORE -2,-1,0,1,2
 # data.frame TO GENERATE STOCHASTIC REALIZATIONS OF INPUTS
 confModSet<- merge(confModSet,prds,by="predictor",all.x=TRUE)
-n<- 10000
+confModSet<- confModSet[order(confModSet$w,decreasing=TRUE),]
+
+## NUMBER OF STOCHASTIC REPLICATES
+n<- 1000
 
 pdat<- lapply(1:nrow(confModSet),function(x)
     {
@@ -54,33 +57,58 @@ yy<- as.data.frame(do.call("cbind",pdat))
 ## NAMES FOR MODEL.MATRIX
 names(yy)<- confModSet$pred 
 yy$trip_no<- as.factor(yy$trip_no)
+# NUMBER OF FISH TO TRANSLOCATE
+yy$ntrap<- sample(1:max(dat_unstd[dat_unstd$location=='Foster Dam',]$trap_total),
+    n, replace=TRUE)
+```
+
+Now we take that dataset and generate predictions. But to get 
+the full variance we need to do this in chunks. 
+
+```{r}
 ## MATRIX OF PROBABILITIES TO SIMULATE OUTCOMES
 y_hat<-matrix(0,nrow=n,ncol=nrow(confModSet))
 
-## SIMUALATE OUTCOMES
-for(i in 1:length(confModSet$model_indx))
+strt<-seq(1,n+2,by=10000)
+end<-seq(1,n+2,by=10000)-1
+ppp<- cbind(strt[-length(strt)],end[-1])
+## SIMUALATE OUTCOMES: SURVIVAL PROBABILITY
+for(j in 1:nrow(ppp))
     {
-    print(i)
-    mm<- paste("~",paste(confModSet$pred[i],collapse="+"))
-    mm<- model.matrix(as.formula(mm),yy)   
-    
-    ## INDEX FOR MODEL OUTPUT
-    x<- confModSet$model_indx[i]
-    pvar1 <- diag(mm %*% tcrossprod(as.matrix(vcov(out_foster[[x]])),mm))
-    tvar1 <- pvar1+VarCorr(out_foster[[x]])$samp[1] 
-    y_hat[,x]<- plogis(rnorm(n,mm%*%fixef(out_foster[[x]]),tvar1))
+    for(i in 1:length(confModSet$model_indx))
+        {
+        nn<- length(ppp[j,1]:ppp[j,2])
+        mm<- paste("~",paste(confModSet$pred[i],collapse="+"))
+        mm<- model.matrix(as.formula(mm),yy[ppp[j,1]:ppp[j,2],])   
+        
+        ## INDEX FOR MODEL OUTPUT
+        x<- confModSet$model_indx[i]
+        pvar1 <- diag(mm %*% tcrossprod(as.matrix(vcov(out_foster[[x]])),mm))
+        tvar1 <- pvar1+VarCorr(out_foster[[x]])$samp[1] 
+        
+        ## y_hat pr survival in order of weights
+        y_hat[ppp[j,1]:ppp[j,2],i]<-plogis(rnorm(nn,mm%*%fixef(out_foster[[x]]),tvar1))
+        }
     }
     
-# NUMBER OF FISH TO TRANSLOCATE
 
-ntrap<- seq(0,max(dat_unstd[dat_unstd$location=='Foster Dam',]$trap_total),
-    by=10)
+    
+```
 
-lapply(1:ncol(y_hat),function(x)
-        {
-        y_hat[,x]<-rbinom(n,
-        })
+Now we link the many predicted survivals to the number of fish to 
+translocate (i.e., number of fish in trap. 
 
+```{r}
+ 
+
+n_hat<- y_hat
+## EACH COLUMN IN Y_HAT IS A PREDICTION FROM THE MODEL. 
+for(i in 1:ncol(y_hat))
+    {
+    n_hat[,i]<-rbinom(n,yy$ntrap,y_hat[,i])
+    }
+## SURVIVORS ACCOUNTING FOR MODEL UNCERTAINTY
+yy$n_hat_weighted<- n_hat %*% confModSet$w
 
 
 
