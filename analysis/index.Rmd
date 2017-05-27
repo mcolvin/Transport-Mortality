@@ -10,8 +10,13 @@ output:
 <!--
 rmarkdown::render("index.Rmd")# build page
 
-* see line 78 need to link predictions and numbers ouplanted
-and then discretize
+* add location to dataset and then sim time to 
+outplant from that as well as time to load then
+use that info to get at rewards
+    * bin density
+    * by outplant location
+    * 
+
 -->
 
 ```{r,echo=FALSE,warning=FALSE, message=FALSE}
@@ -41,7 +46,7 @@ confModSet<- merge(confModSet,prds,by="predictor",all.x=TRUE)
 confModSet<- confModSet[order(confModSet$w,decreasing=TRUE),]
 
 ## NUMBER OF STOCHASTIC REPLICATES
-n<- 1000
+n<- 10000
 
 pdat<- lapply(1:nrow(confModSet),function(x)
     {
@@ -67,28 +72,27 @@ the full variance we need to do this in chunks.
 
 ```{r}
 ## MATRIX OF PROBABILITIES TO SIMULATE OUTCOMES
-y_hat<-matrix(0,nrow=n,ncol=nrow(confModSet))
+y_hat<-matrix(NA,nrow=n,ncol=nrow(confModSet))
+ys<- y_hat[-1,]
 
-strt<-seq(1,n+2,by=10000)
-end<-seq(1,n+2,by=10000)-1
-ppp<- cbind(strt[-length(strt)],end[-1])
 ## SIMUALATE OUTCOMES: SURVIVAL PROBABILITY
-for(j in 1:nrow(ppp))
+for(j in 1:1)
     {
     for(i in 1:length(confModSet$model_indx))
         {
-        nn<- length(ppp[j,1]:ppp[j,2])
         mm<- paste("~",paste(confModSet$pred[i],collapse="+"))
-        mm<- model.matrix(as.formula(mm),yy[ppp[j,1]:ppp[j,2],])   
+        mm<- model.matrix(as.formula(mm),yy)   
         
         ## INDEX FOR MODEL OUTPUT
         x<- confModSet$model_indx[i]
-        pvar1 <- diag(mm %*% tcrossprod(as.matrix(vcov(out_foster[[x]])),mm))
+        pvar1 <- diag(mm %*% 
+            tcrossprod(as.matrix(vcov(out_foster[[x]])),mm))
         tvar1 <- pvar1+VarCorr(out_foster[[x]])$samp[1] 
         
         ## y_hat pr survival in order of weights
-        y_hat[ppp[j,1]:ppp[j,2],i]<-plogis(rnorm(nn,mm%*%fixef(out_foster[[x]]),tvar1))
+        y_hat[,i]<-plogis(rnorm(n,mm%*%fixef(out_foster[[x]]),tvar1))
         }
+    ys<- rbind(ys,y_hat)
     }
     
 
@@ -109,28 +113,25 @@ for(i in 1:ncol(y_hat))
     }
 ## SURVIVORS ACCOUNTING FOR MODEL UNCERTAINTY
 yy$n_hat_weighted<- n_hat %*% confModSet$w
+```
 
+## Rewards matrix
 
+fn(effort and survivors) trying to minimize effort 
+and maximize number of fish to outplant.
+Time to locations...
 
+The NOAA constraint is 10.56689 fish per m3
 
-out<- data.frame()
-for(i in 1:nrow(confModSet))
-    {
-    mod<- confModSet$model_indx[i]
-    parameterEstimates<- data.frame(model=mod,pred=confModSet$predictor[i],
-        Parameter=c(row.names(summary(out_foster[[mod]])$coefficients),".sig01"),
-        Estimate=c(summary(out_foster[[mod]])$coefficients[,1],
-            sqrt(as.vector(summary(out_foster[[mod]])$varcor[[1]]))))
-            
-    ci<- as.data.frame(confint(out_foster[[mod]]))
-    ci$Parameter<- row.names(ci)
-    parameterEstimates<- merge(parameterEstimates,ci,by="Parameter",
-        all.x=TRUE)
-    parameterEstimates$location<- "Foster Dam"
-    out<- rbind(out, parameterEstimates)			
-    }
-    
-    
+```{r}
+## UTILITY
+### MIN(EFFORT) + MAX(SURVIVORS)
+dens<- seq(1, 25, by =1)    
+loc<- 
+
+R<- matrix(NA,nrow=ndec, ncol=nstates)  
+
+  
 ```
 
 
