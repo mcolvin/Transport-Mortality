@@ -1,12 +1,13 @@
 ---
 title: "Transport ARM"
-date: "`r format(Sys.time(), '%d %B, %Y')`"
+date: "29 May, 2017"
 ---
 
 <!--
-* need to update yaml to play with Jekyll
+rmarkdown::render("index.Rmd")
 knit("index.Rmd")# returns md file
-
+rmarkdown::render("index.Rmd",
+    clean=FALSE,run_pandoc=FALSE)# and leave md file clean =false
 ##
 * add location to dataset and then sim time to 
 outplant from that as well as time to load then
@@ -17,20 +18,66 @@ use that info to get at rewards
 https://stackoverflow.com/questions/31914161/how-to-convert-rmd-into-md-in-r-studio
 -->
 
-```{r,echo=FALSE,warning=FALSE, message=FALSE}
-source("R/1_global.R") 	
-source("R/2_functions.R")         
-source("R/3_load.R")     
-source("R/4_clean.R" )
-#source("R/5_tables.R") 
-#source("R/6_figures.R")  	
-#source("R/7_models.R")
-#source("R/8_analysis.R")
 
+
+
+```r
+head(dat_unstd)
 ```
 
-```{r}
-head(dat_unstd)
+```
+##     location year doy       date trip.no driver trucknum truckVolume
+## 1 Dexter Dam 2008 220 2008-08-07       1   MATT      145    10.22061
+## 2 Dexter Dam 2008 240 2008-08-27       1   BRAD      145    10.22061
+## 3 Dexter Dam 2008 241 2008-08-28       1   BRAD      145    10.22061
+## 4 Dexter Dam 2008 255 2008-09-11       1   BRAD      145    10.22061
+## 5 Dexter Dam 2009 195 2009-07-14       1  JASON      145    10.22061
+## 6 Dexter Dam 2009 196 2009-07-15       1   BRAD      145    10.22061
+##    waterbody waterTempCollSite waterTempStart waterTempEnd
+## 1       N FK             11.67          11.11        11.11
+## 2       N FK             10.56          10.56        11.11
+## 3       N FK             10.56          10.56        11.11
+## 4       N FK             10.56           9.44        10.00
+## 5 M FK PATTY             11.11          11.11        12.22
+## 6 M FK PATTY             11.11          11.11        11.11
+##   waterTempRelease loadingStart loadingStop loadingTime haulingStart
+## 1            11.11         8:30     9:30:00          60      9:40:00
+## 2            12.22         8:30     9:30:00          60      9:35:00
+## 3            12.22         8:30     9:30:00          60      9:35:00
+## 4            11.67         8:00     9:45:00         105      9:45:00
+## 5             8.89         8:15    10:15:00         120     10:20:00
+## 6            10.56         8:00     9:20:00          80      9:25:00
+##   haulingStop haulingTime nFish nJacks nLoss nLikelyLoss Comments   maxT_C
+## 1    10:45:00          65   135    166     0           0          28.33333
+## 2    11:15:00         100   100     11     0           0          24.44444
+## 3    11:15:00         100    69      9     0           0          29.44444
+## 4    11:00:00          75   147     11     0           0          32.22222
+## 5    12:15:00         115   171    153     7           0          26.66667
+## 6    11:30:00         125   125    107     0           0          31.11111
+##   cloudcover trip_no tot_time delta_temp delta_trip_temp fish_per_vol
+## 1      0.625       1      125      -0.56            0.00    13.208609
+## 2      0.500       1      160       0.55            0.55     9.784155
+## 3      0.125       1      160       0.55            0.55     6.751067
+## 4      0.000       1      180      -0.56            0.56    14.382707
+## 5      0.375       1      235       1.11            1.11    16.730905
+## 6      0.250       1      205       0.00            0.00    12.230193
+##   mort.1 mort.2 trap01 trap50 doy01 doy50 run_size    dd_alb dd  dd_50
+## 1      0    135    170    190    87   164    14149  9422.888 NA 3134.4
+## 2      0    100    170    190    87   164    14149  9422.888 NA 3134.4
+## 3      0     69    170    190    87   164    14149  9422.888 NA 3134.4
+## 4      0    147    170    190    87   164    14149  9422.888 NA 3134.4
+## 5      7    164    168    190    66   145    25795 10753.888 NA 5002.7
+## 6      0    125    168    190    66   145    25795 10753.888 NA 5002.7
+##       Q_01     Q_50   dd_01 trap_total day_bet     p_mort
+## 1 3603.247 2667.078 7387.70        220       7 0.00000000
+## 2 3603.247 2667.078 7387.70        118      20 0.00000000
+## 3 3603.247 2667.078 7387.70        163       1 0.00000000
+## 4 3603.247 2667.078 7387.70        173      14 0.00000000
+## 5 3297.557 3395.411 8573.05        423       5 0.04268293
+## 6 3297.557 3395.411 8573.05        313       1 0.00000000
+```
+
+```r
 dat_unstd$totalTrans<- dat_unstd$nFish + dat_unstd$nJacks
 
 run_comp<- aggregate(cbind(trap_total,totalTrans)~year+doy+location,dat_unstd,max)
@@ -47,13 +94,38 @@ fit<- glm(cbind(totalTrans,(trap_total-totalTrans))~location*doy,
 run_comp$p<- run_comp$totalTrans/run_comp$trap_total
 library(lattice)
 xyplot(p~doy|year,run_comp, subset=location=="Foster Dam")
+```
+
+![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-2-1.png)
+
+```r
 xyplot(p~doy|year,run_comp, subset=location=="Dexter Dam")
+```
 
+![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-2-2.png)
 
+```r
 run_comp$phat<- predict(fit, run_comp, type="response")
 plot(p~phat,run_comp)
+```
 
+![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-2-3.png)
+
+```r
 vcov(fit)
+```
+
+```
+##                          (Intercept) locationFoster Dam           doy
+## (Intercept)             0.0244829331      -0.0244829331 -1.172503e-04
+## locationFoster Dam     -0.0244829331       0.0394058516  1.172503e-04
+## doy                    -0.0001172503       0.0001172503  5.665459e-07
+## locationFoster Dam:doy  0.0001172503      -0.0001877961 -5.665459e-07
+##                        locationFoster Dam:doy
+## (Intercept)                      1.172503e-04
+## locationFoster Dam              -1.877961e-04
+## doy                             -5.665459e-07
+## locationFoster Dam:doy           9.075264e-07
 ```
 
 
@@ -106,116 +178,13 @@ The most number of fish ever transported at Dexter Dam was 414 in a day
 
 First the predictors need to be 
 
-```{r,echo=FALSE,eval=FALSE}
-# FIXED AND RANDOM EFFECTS FOR CONFIDENCE MODEL SETS
-ms<- tables(3) # GET MODEL SELECTION RESULTS
-# FOSTER DAM
-confModSet<- subset(ms[ms$location=="Foster Dam",])
-# prds MOST ARE STANDARDIZED THEREFORE -2,-1,0,1,2
-# data.frame TO GENERATE STOCHASTIC REALIZATIONS OF INPUTS
-confModSet<- merge(confModSet,prds,by="predictor",all.x=TRUE)
-confModSet<- confModSet[order(confModSet$w,decreasing=TRUE),]
 
-## NUMBER OF STOCHASTIC REPLICATES
-n<- 10000
-
-pdat<- lapply(1:nrow(confModSet),function(x)
-    {
-    if(confModSet$standardize[x]==1){xx<-runif(n,-2,2)}
-    if(confModSet$standardize[x]==0 & confModSet$pred[x]!=1){xx<-sample(c(1:4),
-        n,replace=TRUE)}
-    if(confModSet$standardize[x]==0 & confModSet$pred[x]==1){xx<-rep(1,n)}  
-    return(xx)
-    })
-
-    
-## COMBINE UP AND CREATE A DATA.FRAME
-## TO PREDICT SURVIVALS FOR
-yy<- as.data.frame(do.call("cbind",pdat))
-
-
-## NAMES FOR MODEL.MATRIX
-names(yy)<- confModSet$pred 
-yy$trip_no<- as.factor(yy$trip_no)
-# NUMBER OF FISH TO TRANSLOCATE
-yy$ntrap<- floor(runif(n,1,89))## max translocated at foster
-    
-## ASSIGN LOCATION TO OUTPLANT TO
-yy$out_location<- sample(c(1:3),n,replace=TRUE)
-
-yy$haulingTime_u<- 0
-indx<- which(yy$out_location==1)
-yy[indx,]$haulingTime_u<- rlnorm(length(indx),2.970195,0.52626145)
-indx<- which(yy$out_location==2)
-yy[indx,]$haulingTime_u<- rlnorm(length(indx),3.390801, 0.06450340)
-indx<- which(yy$out_location==3)
-yy[indx,]$haulingTime_u<- rlnorm(length(indx),3.898760,0.19941085)
-    
-## TOTAL TRIP TIME
-yy$tripTime<-yy$haulingTime_u* 2
-
-
-## TRUCK VOLUMES
-yy$truckVolume_u<- sample(c(7.57082,9.463525,10.220607),
-    n,replace=TRUE)
-### STANDARDIZE FOR ESTIMATING MORTALITY
-yy$fish_per_vol<- scale(yy$truckVolume_u,
-		center= fos[which(fos[,1]==8),2],
-		scale = fos[which(fos[,1]==8),3])
-
-        
-## DENSITY
-yy$density_u<- sample(c(1,5,10,15,20,25, 30,35, 40),
-    n,replace=TRUE)
-### STANDARDIZE DENSITY FOR ESIMATING MORTALITY
-yy$fish_per_vol<- scale(yy$density_u,
-		center= fos[which(fos[,1]==31),2],
-		scale = fos[which(fos[,1]==31),3])
-        
-## NUMBER OF TRIPS
-### HOW MANY CAN FIT IN THE TRUCK GIVEN DENSITY
-yy$n_per_trip<- floor(yy$density_u*yy$truckVolume_u)
-yy$n_trips<- ceiling(yy$ntrap/yy$n_per_trip)
-yy$fish_left_over<- ifelse(yy$n_trips>1,
-    yy$ntrap-((yy$n_trips-1)*yy$n_per_trip),0)
-
-    
-    
-    
-## NEED TO BREAK UP TRIPS GIVEN SCENARIO (MULTIPLE TRIPS)...    
-yy$id<- 1:n
-
-yyy<- lapply(1:10,function(x)
-    {
-    ## expand dataset
-    out<- yy[rep(x,yy[x,]$n_trips),]
-
-    out$trip_no<-c(1:nrow(out))
-    out$trip_no<- factor(out$trip_no,levels=c(1,2,3,4))
-    indx<- which.max(out$trip_no)    
-    if(indx>1){out[indx,]$n_per_trip<- out[indx,]$fish_left_over}
-    if(indx==1){out[indx,]$n_per_trip<- out[indx,]$ntrap}
-
-    ## LOADING TIME GIVEN VOLUME AND DENSITY  
-    out$loadingTime_u<- out$n_per_trip*4.6
-    out$loadingTime<- scale(out$loadingTime_u,
-        fos[1,2],fos[1,3])
-        
-    out$actual_density_u<- out$n_per_trip/out$truckVolume_u   
-    out$fish_per_vol<- scale(out$actual_density_u,
-        fos[6,2],fos[6,3])
-    return(out)
-    })
-    
-    
-
- 
-```
 
 Now we take that dataset and generate predictions. But to get 
 the full variance we need to do this in chunks. 
 
-```{r,eval=FALSE}
+
+```r
 outcomes<- lapply(1:10,function(x)
     {
     ## MATRIX OF PROBABILITIES TO SIMULATE OUTCOMES
@@ -257,17 +226,13 @@ outcomes<- lapply(1:10,function(x)
     })
 
 outcomes<- do.call("rbind",outcomes)
-    
-
-    
 ```
 
 Now we link the many predicted survivals to the number of fish to 
 translocate (i.e., number of fish in trap. 
 
-```{r,eval=FALSE}
- 
 
+```r
 n_hat<- y_hat
 ## EACH COLUMN IN Y_HAT IS A PREDICTION FROM THE MODEL. 
 for(i in 1:ncol(y_hat))
@@ -275,7 +240,6 @@ for(i in 1:ncol(y_hat))
     
     }
 ## SURVIVORS ACCOUNTING FOR MODEL UNCERTAINTY
-
 ```
 
 ## Rewards matrix
@@ -286,36 +250,27 @@ Time to locations...
 
 The NOAA constraint is 10.56689 fish per m3
 
-```{r,eval=FALSE}
+
+```r
 ## UTILITY
 ### MIN(EFFORT) + MAX(SURVIVORS)
 dens<- seq(1, 25, by =1)    
 loc<- c(1,2,3)
 
 R<- matrix(NA,nrow=length(dens)*length(loc), ncol=nstates)  
-
-  
 ```
 
 
     
-```{r,echo=FALSE,eval=FALSE}
-figures(1)
-```
+
   
 
 
 ## PREDICTED RESPONSES	
 
-```{r,echo=FALSE,eval=FALSE}
-figures(2.1)# foster
-```
-```{r,echo=FALSE,eval=FALSE}
-figures(2.2)# dexter
-```
-```{r,echo=FALSE,eval=FALSE}
-figures(3)# OPTIMAL POLICIES FOR FOSTER AN DEXTER
-```
+
+
+
 
 
 	
@@ -326,9 +281,7 @@ figures(3)# OPTIMAL POLICIES FOR FOSTER AN DEXTER
 
 
 
-```{r, echo=FALSE,dpi=300,fig.cap="",warning=FALSE,eval=FALSE}
- figures(1)
-```
+
 
 Figure 1.  Study area and location of tributary populations of interest.
 Open squares denote the first impassible major tributary dams.
@@ -337,9 +290,7 @@ Arrow denotes north and direction of river flow.
 
 
 
-```{r, echo=FALSE,dpi=300,fig.cap="",warning=FALSE,eval=FALSE}
-figures(2)
-```
+
 
 Figure 2.  Predictions (solid black line) and 95% prediction interval (gray area) for models
 representing hypotheses predicting the mortality rate of transported Chinook Salmon.
@@ -348,9 +299,7 @@ Panels represent prediction for models retained in the confidence model set for 
 
 
 
-```{r, echo=FALSE,dpi=300,fig.cap="",warning=FALSE,eval=FALSE}
-figures(3)
-```
+
 
 Figure 3.  Optimal transportation policies for spring-run Chinook Salmon trapped at Foster Dam.
 The white lines denote commonly used tank volumes (300, 1200, 1500, 2000, 2700 gallons) in Upper 
@@ -364,9 +313,7 @@ Figure 3 and Figure 4 are still preliminary as I am working out some of the flic
 Although Figure 4 behaves as one would expect and I do not anticipate it changing much.
  
 
-```{r, echo=FALSE,dpi=300,fig.cap="",warning=FALSE,eval=FALSE}
-figures(4)
-```
+
 
 Figure 4.  Optimal transportation policies for spring-run Chinook Salmon trapped at Dexter Dam.
 The white lines denote commonly used tank volumes (300, 1200, 1500, 2000, 2700 gallons) in Upper
@@ -376,28 +323,18 @@ Willamette River spring-run Chinook Salmon translocation.
 
 Table 1.  Candidate explanatory variables, descriptions, and hypotheses. 
 
-```{r, echo=FALSE,eval=FALSE}
-tbl1<- tables(1)
-kable(tbl1,digits=2,caption = NULL,row.names=FALSE,align=c('l','l','l'),
-	col.names=c("Predictor type","Predictor","Description and hypothesis"))
-```
+
 
 Table 2. Summary of candidate variable used to evaluate the factors related to Chinook Salmon transport mortality in the Upper Willamette Basin.
 
-```{r, echo=FALSE,eval=FALSE}
-tbl2<- tables(2)
-kable(tbl2,digits=2,caption = NULL,row.names=FALSE)
-```
+
 
 Table 3. Candidate models and model selection criteria for the set of candidate models for 
 adult spring Chinook Salmon transport mortality. All models contained an intercept and 
 a random effect of sample in addition to the variable being evaluated.  Models retained for 
 full model; cumulative model weight = 0.95.
 
-```{r, echo=FALSE,eval=FALSE}
-tbl3<- tables(3)
-kable(tbl3,digits=2,caption = NULL,row.names=FALSE)
-```
+
 
  
   
@@ -408,10 +345,7 @@ Table 4. Parameter estimates and 95% confidence limits (CL) of fixed and random 
 for best approximating model of adult Chinook Salmon transport mortality. 
 Random effects are variance components. 
 
-```{r, echo=FALSE,warining=FALSE,message=FALSE,eval=FALSE}
-tbl4<- tables(4)
-kable(tbl4,digits=2,caption = NULL,row.names=FALSE)
-```
+
 
 	
 
