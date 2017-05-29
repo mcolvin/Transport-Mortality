@@ -89,7 +89,9 @@ trans$date <- as.Date(as.character(trans$date), format="%m/%d/%Y")
 trans$doy<-as.numeric(strftime(trans$date, format = "%j"))
 trans$year<-as.numeric(strftime(trans$date, format = "%Y"))
 trans<-merge(trans,weath,by=c("location","year","doy"), all.x=TRUE)
-
+## set hauling times with 0 to NA
+trans$haulingTime<- ifelse(trans$haulingTime<=0,NA,
+    trans$haulingTime)
 ## CONVERT GALLONS TO M^3 
 trans$truckVolume<-trans$truckVolume*0.00378541
 ## CONVERT TEMPERATURE FROM F TO C

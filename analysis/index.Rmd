@@ -8,8 +8,9 @@ output:
 ---
 
 <!--
-rmarkdown::render("index.Rmd")# build page
-
+rmarkdown::render("index.Rmd",
+    clean=FALSE,run_pandoc=FALSE)# and leave md file clean =false
+##
 * add location to dataset and then sim time to 
 outplant from that as well as time to load then
 use that info to get at rewards
@@ -31,6 +32,76 @@ source("R/8_analysis.R")
 
 ```
 
+```{r}
+head(dat_unstd)
+dat_unstd$totalTrans<- dat_unstd$nFish + dat_unstd$nJacks
+
+run_comp<- aggregate(cbind(trap_total,totalTrans)~year+doy+location,dat_unstd,max)
+run_comp$flag<- ifelse(run_comp$trap_total<run_comp$totalTrans,1,0)
+run_comp<- subset(run_comp,flag==0)
+
+fit<- glm(cbind(totalTrans,(trap_total-totalTrans))~location*doy*year,
+    data=run_comp,
+    family="binomial")
+fit<- glm(cbind(totalTrans,(trap_total-totalTrans))~location*doy,
+    data=run_comp,
+    family="binomial")   
+    
+run_comp$p<- run_comp$totalTrans/run_comp$trap_total
+library(lattice)
+xyplot(p~doy|year,run_comp, subset=location=="Foster Dam")
+xyplot(p~doy|year,run_comp, subset=location=="Dexter Dam")
+
+
+run_comp$phat<- predict(fit, run_comp, type="response")
+plot(p~phat,run_comp)
+
+vcov(fit)
+```
+
+
+## Decision space
+
+### Outlant densities
+
+
+
+### Outplant locations
+
+#### Foster
+
+There are 3 current locations where spring chinook are outplanted
+in the South Santiam River above Foster Dam. These locations are
+
+1. S.S. - Caukins 2.970195 0.52626145
+2. S.S. - River Bend 3.390801 0.06450340
+3. S.S. -  Gordon Rd. LN( 3.898760 0.19941085
+
+The maximum transport density for fish from Foster was 37.8 fish per m3
+
+Did decisions of densities 1,5,10,15,20,25, 30,35, 40.
+
+There are 3 truck volumes used at Foster Dam
+
+1. 7.57082  
+2. 9.463525  
+3. 10.220607 (most common)
+
+It takes ~4.6 minutes to process a fish at Foster Dam
+
+The most number of fish ever transported at Foster was 88 in a day
+#### Dexter
+
+The maximum transport density for fish from Dexter was 57.2 fish per m3
+
+There are 3 truck volumes used at Dexter Dam
+
+1. 1.135623 
+2. 4.542492 
+3. 5.67811
+
+It takes ~0.25 minutes to process a fish at Foster Dam
+The most number of fish ever transported at Dexter Dam was 414 in a day
 ## Predicting survival
 
 First the predictors need to be 
@@ -56,44 +127,136 @@ pdat<- lapply(1:nrow(confModSet),function(x)
     if(confModSet$standardize[x]==0 & confModSet$pred[x]==1){xx<-rep(1,n)}  
     return(xx)
     })
+
+    
 ## COMBINE UP AND CREATE A DATA.FRAME
 ## TO PREDICT SURVIVALS FOR
 yy<- as.data.frame(do.call("cbind",pdat))
+
+
 ## NAMES FOR MODEL.MATRIX
 names(yy)<- confModSet$pred 
 yy$trip_no<- as.factor(yy$trip_no)
 # NUMBER OF FISH TO TRANSLOCATE
-yy$ntrap<- sample(1:max(dat_unstd[dat_unstd$location=='Foster Dam',]$trap_total),
-    n, replace=TRUE)
+yy$ntrap<- floor(runif(n,1,89))## max translocated at foster
+    
+## ASSIGN LOCATION TO OUTPLANT TO
+yy$out_location<- sample(c(1:3),n,replace=TRUE)
+
+yy$haulingTime_u<- 0
+indx<- which(yy$out_location==1)
+yy[indx,]$haulingTime_u<- rlnorm(length(indx),2.970195,0.52626145)
+indx<- which(yy$out_location==2)
+yy[indx,]$haulingTime_u<- rlnorm(length(indx),3.390801, 0.06450340)
+indx<- which(yy$out_location==3)
+yy[indx,]$haulingTime_u<- rlnorm(length(indx),3.898760,0.19941085)
+    
+## TOTAL TRIP TIME
+yy$tripTime<-yy$haulingTime_u* 2
+
+
+## TRUCK VOLUMES
+yy$truckVolume_u<- sample(c(7.57082,9.463525,10.220607),
+    n,replace=TRUE)
+### STANDARDIZE FOR ESTIMATING MORTALITY
+yy$fish_per_vol<- scale(yy$truckVolume_u,
+		center= fos[which(fos[,1]==8),2],
+		scale = fos[which(fos[,1]==8),3])
+
+        
+## DENSITY
+yy$density_u<- sample(c(1,5,10,15,20,25, 30,35, 40),
+    n,replace=TRUE)
+### STANDARDIZE DENSITY FOR ESIMATING MORTALITY
+yy$fish_per_vol<- scale(yy$density_u,
+		center= fos[which(fos[,1]==31),2],
+		scale = fos[which(fos[,1]==31),3])
+        
+## NUMBER OF TRIPS
+### HOW MANY CAN FIT IN THE TRUCK GIVEN DENSITY
+yy$n_per_trip<- floor(yy$density_u*yy$truckVolume_u)
+yy$n_trips<- ceiling(yy$ntrap/yy$n_per_trip)
+yy$fish_left_over<- ifelse(yy$n_trips>1,
+    yy$ntrap-((yy$n_trips-1)*yy$n_per_trip),0)
+
+    
+    
+    
+## NEED TO BREAK UP TRIPS GIVEN SCENARIO (MULTIPLE TRIPS)...    
+yy$id<- 1:n
+
+yyy<- lapply(1:10,function(x)
+    {
+    ## expand dataset
+    out<- yy[rep(x,yy[x,]$n_trips),]
+
+    out$trip_no<-c(1:nrow(out))
+    out$trip_no<- factor(out$trip_no,levels=c(1,2,3,4))
+    indx<- which.max(out$trip_no)    
+    if(indx>1){out[indx,]$n_per_trip<- out[indx,]$fish_left_over}
+    if(indx==1){out[indx,]$n_per_trip<- out[indx,]$ntrap}
+
+    ## LOADING TIME GIVEN VOLUME AND DENSITY  
+    out$loadingTime_u<- out$n_per_trip*4.6
+    out$loadingTime<- scale(out$loadingTime_u,
+        fos[1,2],fos[1,3])
+        
+    out$actual_density_u<- out$n_per_trip/out$truckVolume_u   
+    out$fish_per_vol<- scale(out$actual_density_u,
+        fos[6,2],fos[6,3])
+    return(out)
+    })
+    
+    
+
+ 
 ```
 
 Now we take that dataset and generate predictions. But to get 
 the full variance we need to do this in chunks. 
 
 ```{r}
-## MATRIX OF PROBABILITIES TO SIMULATE OUTCOMES
-y_hat<-matrix(NA,nrow=n,ncol=nrow(confModSet))
-ys<- y_hat[-1,]
-
-## SIMUALATE OUTCOMES: SURVIVAL PROBABILITY
-for(j in 1:1)
+outcomes<- lapply(1:10,function(x)
     {
+    ## MATRIX OF PROBABILITIES TO SIMULATE OUTCOMES
+    nn<-nrow(yyy[[x]])
+    y_hat<-matrix(NA,nrow=nn,ncol=nrow(confModSet))
     for(i in 1:length(confModSet$model_indx))
         {
         mm<- paste("~",paste(confModSet$pred[i],collapse="+"))
-        mm<- model.matrix(as.formula(mm),yy)   
+        mm<- model.matrix(as.formula(mm),yyy[[x]])   
         
         ## INDEX FOR MODEL OUTPUT
-        x<- confModSet$model_indx[i]
-        pvar1 <- diag(mm %*% 
-            tcrossprod(as.matrix(vcov(out_foster[[x]])),mm))
-        tvar1 <- pvar1+VarCorr(out_foster[[x]])$samp[1] 
-        
+        xx<- confModSet$model_indx[i]
+        ### VARIANCE COMPONENTS
+        re<- VarCorr(out_foster[[xx]])$samp[1] 
+        vcv<-suppressWarnings(as.matrix(vcov(out_foster[[xx]])))
+        pvar1 <- diag(mm %*% tcrossprod(vcv,mm))
+        tvar1 <- pvar1+re ## TOTAL VARIANCE
+
         ## y_hat pr survival in order of weights
-        y_hat[,i]<-plogis(rnorm(n,mm%*%fixef(out_foster[[x]]),tvar1))
+        y_hat[,i]<-plogis(rnorm(nn,mm%*%fixef(out_foster[[xx]]),tvar1))
+        ## NUMBER OF SURVIVORS
+        y_hat[,i]<-rbinom(nn,
+            yyy[[x]]$n_per_trip,
+            y_hat[,i])        
         }
-    ys<- rbind(ys,y_hat)
-    }
+        
+    tmp<- data.frame(
+        id=max(yyy[[x]]$id),
+        outplantLocation= max(yyy[[x]]$out_location),
+        density=max(yyy[[x]]$density_u),
+        truckVolume=max(yyy[[x]]$truckVolume_u),
+        ntranslocated=max(yyy[[x]]$ntrap), 
+        nTrips= max(yyy[[xx]]$n_trips),
+        totalLoading=sum(yyy[[x]]$loadingTime_u),
+        totalHauling=sum(yyy[[x]]$haulingTime_u)*2,
+        totalMortalities=sum(y_hat %*% confModSet$w),
+        totalTransported=sum(yyy[[x]]$n_per_trip))
+    return(tmp)
+    })
+
+outcomes<- do.call("rbind",outcomes)
     
 
     
@@ -109,10 +272,10 @@ n_hat<- y_hat
 ## EACH COLUMN IN Y_HAT IS A PREDICTION FROM THE MODEL. 
 for(i in 1:ncol(y_hat))
     {
-    n_hat[,i]<-rbinom(n,yy$ntrap,y_hat[,i])
+    
     }
 ## SURVIVORS ACCOUNTING FOR MODEL UNCERTAINTY
-yy$n_hat_weighted<- n_hat %*% confModSet$w
+
 ```
 
 ## Rewards matrix
