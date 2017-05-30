@@ -14,7 +14,6 @@ use that info to get at rewards
     * bin density
     * by outplant location
     * 
-https://stackoverflow.com/questions/31914161/how-to-convert-rmd-into-md-in-r-studio
 -->
 
 ```{r,echo=FALSE,warning=FALSE, message=FALSE}
@@ -22,15 +21,14 @@ source("R/1_global.R")
 source("R/2_functions.R")         
 source("R/3_load.R")     
 source("R/4_clean.R" )
-#source("R/5_tables.R") 
-#source("R/6_figures.R")  	
-#source("R/7_models.R")
+source("R/5_tables.R") 
+source("R/6_figures.R")  	
+source("R/7_models.R")
 #source("R/8_analysis.R")
 
 ```
 
 ```{r}
-head(dat_unstd)
 dat_unstd$totalTrans<- dat_unstd$nFish + dat_unstd$nJacks
 
 run_comp<- aggregate(cbind(trap_total,totalTrans)~year+doy+location,dat_unstd,max)
@@ -53,7 +51,7 @@ xyplot(p~doy|year,run_comp, subset=location=="Dexter Dam")
 run_comp$phat<- predict(fit, run_comp, type="response")
 plot(p~phat,run_comp)
 
-vcov(fit)
+
 ```
 
 
@@ -185,7 +183,7 @@ yy$fish_left_over<- ifelse(yy$n_trips>1,
 ## NEED TO BREAK UP TRIPS GIVEN SCENARIO (MULTIPLE TRIPS)...    
 yy$id<- 1:n
 
-yyy<- lapply(1:10,function(x)
+yyy<- lapply(1:n,function(x)
     {
     ## expand dataset
     out<- yy[rep(x,yy[x,]$n_trips),]
@@ -216,7 +214,7 @@ Now we take that dataset and generate predictions. But to get
 the full variance we need to do this in chunks. 
 
 ```{r,eval=FALSE}
-outcomes<- lapply(1:10,function(x)
+outcomes<- lapply(1:n,function(x)
     {
     ## MATRIX OF PROBABILITIES TO SIMULATE OUTCOMES
     nn<-nrow(yyy[[x]])
@@ -257,26 +255,20 @@ outcomes<- lapply(1:10,function(x)
     })
 
 outcomes<- do.call("rbind",outcomes)
-    
+
+write.csv(outcomes, "./output/outcomes.csv")
 
     
 ```
+
+```{r}
+outcomes<- read.csv("./output/outcomes.csv")
+```
+
 
 Now we link the many predicted survivals to the number of fish to 
 translocate (i.e., number of fish in trap. 
 
-```{r,eval=FALSE}
- 
-
-n_hat<- y_hat
-## EACH COLUMN IN Y_HAT IS A PREDICTION FROM THE MODEL. 
-for(i in 1:ncol(y_hat))
-    {
-    
-    }
-## SURVIVORS ACCOUNTING FOR MODEL UNCERTAINTY
-
-```
 
 ## Rewards matrix
 
@@ -288,13 +280,53 @@ The NOAA constraint is 10.56689 fish per m3
 
 ```{r,eval=FALSE}
 ## UTILITY
-### MIN(EFFORT) + MAX(SURVIVORS)
-dens<- seq(1, 25, by =1)    
-loc<- c(1,2,3)
 
-R<- matrix(NA,nrow=length(dens)*length(loc), ncol=nstates)  
+### MIN(EFFORT) IN HOURS
+outcomes$effort<- (outcomes$totalHauling*2+
+    outcomes$totalLoading)/60
+outcomes$effort<-ifelse(outcomes$effort>12,12,outcomes$effort)
+### SCALE SO LARGE EFFORT = 0
+mx<-max(outcomes$effort)
+mn<- min(outcomes$effort)
+outcomes$effort_sc<- (mx-outcomes$effort)/(mx-mn)
+    
+    
+### MAX(SURVIVORS)    
+outcomes$survivors<- outcomes$totalTransported-
+    outcomes$totalMortalities
+### SCALE SO LARGE SURVIVORS = 1
+mx<-max(outcomes$effort)
+mn<- min(outcomes$effort)
+outcomes$survivors_sc<-  (outcomes$survivors-mn)/(mx-mn)
 
-  
+outcomes$d<- paste(outcomes$density, outcomes$outplantLocation, 
+    outcomes$truckVolume,sep="-")
+
+outcomes$U<- 0.5*outcomes$survivors_sc+0.5*outcomes$effort_sc
+outcomes$tmp<- 1
+
+## BIN UP NUMBER TO OUTPLANT
+outcomes$ntranslocated_b<- cut(outcomes$ntranslocated,
+    seq(0,90,by=10),include.lowest=TRUE)
+outcomes$survivors_b<- cut(outcomes$survivors,
+    seq(0,90,by=10),include.lowest=TRUE)
+ 
+R<- dcast(outcomes, d~ntranslocated_b,
+    value.var='U', mean)
+
+```
+### Transition matrices
+
+
+Now we make transition matrices given each decision.
+
+```{r}
+
+w<- xtabs(~ ntranslocated_b + survivors_b + d, outcomes)
+
+w<- prop.table(w,c(1,3))
+
+
 ```
 
 
