@@ -1,0 +1,16 @@
+<NotepadPlus>
+    <Session activeView="0">
+        <mainView activeIndex="8">
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="1" startPos="0" endPos="0" selMode="0" lang="R" encoding="-1" filename="C:\Users\mcolvin\Documents\projects\PSM\analyses\Transport-Mortality\analysis\R\1_global.R" backupFilePath="" originalFileLastModifTimestamp="1466717562" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="1" startPos="0" endPos="0" selMode="0" lang="R" encoding="-1" filename="C:\Users\mcolvin\Documents\projects\PSM\analyses\Transport-Mortality\analysis\R\2_functions.R" backupFilePath="" originalFileLastModifTimestamp="1470947899" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="1" startPos="0" endPos="0" selMode="0" lang="R" encoding="-1" filename="C:\Users\mcolvin\Documents\projects\PSM\analyses\Transport-Mortality\analysis\R\3_load.R" backupFilePath="" originalFileLastModifTimestamp="1478277655" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="1" startPos="0" endPos="0" selMode="0" lang="R" encoding="-1" filename="C:\Users\mcolvin\Documents\projects\PSM\analyses\Transport-Mortality\analysis\R\4_clean.R" backupFilePath="" originalFileLastModifTimestamp="1481058553" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="1" startPos="0" endPos="0" selMode="0" lang="R" encoding="-1" filename="C:\Users\mcolvin\Documents\projects\PSM\analyses\Transport-Mortality\analysis\R\5_tables.R" backupFilePath="" originalFileLastModifTimestamp="1481058308" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="1" startPos="0" endPos="0" selMode="0" lang="R" encoding="-1" filename="C:\Users\mcolvin\Documents\projects\PSM\analyses\Transport-Mortality\analysis\R\6_figures.R" backupFilePath="" originalFileLastModifTimestamp="1481060692" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="800" startPos="0" endPos="0" selMode="0" lang="R" encoding="-1" filename="C:\Users\mcolvin\Documents\projects\PSM\analyses\Transport-Mortality\analysis\R\7_models.R" backupFilePath="" originalFileLastModifTimestamp="1473429048" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="1528" startPos="0" endPos="0" selMode="0" lang="R" encoding="-1" filename="C:\Users\mcolvin\Documents\projects\PSM\analyses\Transport-Mortality\analysis\R\8_analysis.R" backupFilePath="" originalFileLastModifTimestamp="1462892415" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="1800" startPos="2" endPos="2" selMode="0" lang="Markdown (Zenburn)" encoding="-1" filename="C:\Users\mcolvin\Documents\projects\PSM\analyses\Transport-Mortality\analysis\index.Rmd" backupFilePath="" originalFileLastModifTimestamp="1494982336" />
+        </mainView>
+        <subView activeIndex="0" />
+    </Session>
+</NotepadPlus>
