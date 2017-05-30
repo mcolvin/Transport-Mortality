@@ -298,21 +298,35 @@ outcomes$survivors<- outcomes$totalTransported-
 mx<-max(outcomes$effort)
 mn<- min(outcomes$effort)
 outcomes$survivors_sc<-  (outcomes$survivors-mn)/(mx-mn)
+```
 
-outcomes$d<- paste(outcomes$density, outcomes$outplantLocation, 
-    outcomes$truckVolume,sep="-")
 
+
+### Decision and state space
+
+```{r}
+outcomes$d<- outcomes$density
+d<- unique(outcomes$d)
 outcomes$U<- 0.5*outcomes$survivors_sc+0.5*outcomes$effort_sc
 outcomes$tmp<- 1
 
+
 ## BIN UP NUMBER TO OUTPLANT
+brks<- seq(0,90,by=10)
 outcomes$ntranslocated_b<- cut(outcomes$ntranslocated,
-    seq(0,90,by=10),include.lowest=TRUE)
+    seq(0,90,by=10),include.lowest=TRUE,ordered_result =TRUE,
+    labels=brks[-length(brks)]+5)
+outcomes$S1<- paste(outcomes$ntranslocated_b, outcomes$outplantLocation, 
+    outcomes$truckVolume,sep="-")     
 outcomes$survivors_b<- cut(outcomes$survivors,
-    seq(0,90,by=10),include.lowest=TRUE)
- 
-R<- dcast(outcomes, d~ntranslocated_b,
-    value.var='U', mean)
+    seq(0,90,by=10),include.lowest=TRUE,ordered_result =TRUE,
+    labels=brks[-length(brks)]+5)
+outcomes$S2<- paste(outcomes$survivors_b, outcomes$outplantLocation, 
+    outcomes$truckVolume,sep="-") 
+    
+    
+R<- dcast(outcomes, S1~d,
+    value.var='U', mean)[,-1]
 
 ```
 ### Transition matrices
@@ -322,10 +336,28 @@ Now we make transition matrices given each decision.
 
 ```{r}
 
-w<- xtabs(~ ntranslocated_b + survivors_b + d, outcomes)
+P<- xtabs(~ S1 + S2 + d, outcomes)
 
-w<- prop.table(w,c(1,3))
+P<- as.array(prop.table(P,c(1,3)))
 
+library(MDPtoolbox)
+out<-mdp_policy_iteration(P=P, R=R, discount=.99999)
+
+
+policyTable<- data.frame(S= rownames(P[,,1]),
+    d=d[out$policy])
+SS<- strsplit(as.character(policyTable$S),"-")
+SS <- matrix(unlist(SS),ncol=3, byrow=TRUE)   
+
+policyTable$location<- as.numeric(SS[,2])
+policyTable$nToTranslocate<- as.numeric(SS[,1])
+policyTable$truckVolume<- as.numeric(SS[,3])
+
+levelplot(d~nToTranslocate+truckVolume,
+    policyTable,
+    subset=location==1)
+xx<-subset(policyTable, location==1 & truckVolume>10)
+xx[order(xx$nToTranslocate),]
 
 ```
 
