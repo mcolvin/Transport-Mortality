@@ -59,7 +59,7 @@ yy$fish_per_vol<- scale(yy$truckVolume_u,
 
         
 ## DENSITY
-yy$density_u<- sample(c(1,5,10,15,20,25, 30,35, 40),
+yy$density_u<- sample(c(1,5,10,15,20,25,30,35,40),
     n,replace=TRUE)
 ### STANDARDIZE DENSITY FOR ESIMATING MORTALITY
 yy$fish_per_vol<- scale(yy$density_u,
@@ -72,7 +72,7 @@ yy$n_per_trip<- floor(yy$density_u*yy$truckVolume_u)
 yy$n_trips<- ceiling(yy$ntrap/yy$n_per_trip)
 yy$fish_left_over<- ifelse(yy$n_trips>1,
     yy$ntrap-((yy$n_trips-1)*yy$n_per_trip),0)
-
+yy$n_per_trip<- ifelse(yy$n_trips==1,yy$ntrap,yy$n_per_trip)
    
 ## NEED TO BREAK UP TRIPS GIVEN SCENARIO (MULTIPLE TRIPS)... 
 ### ADD A SCENARIO ID   
@@ -85,7 +85,7 @@ yy$trip_no<-1
 
 ## update trip number
 trip_no<-as.vector(unlist(lapply(yy$n_trips,function(x) c(1:x))))
-
+trip_no<- ifelse(trip_no>4,4,trip_no)
 
 ## expand dataset
 ## a row for each trip
@@ -101,66 +101,41 @@ yy$loadingTime_u<- yy$n_per_trip*4.6
 yy$loadingTime<- scale(yy$loadingTime_u,
     fos[1,2],fos[1,3])
   
-  
+yy$samp<-1  
 yy$actual_density_u<- yy$n_per_trip/yy$truckVolume_u   
 ## update scaled densities for each trip
 yy$fish_per_vol<- scale(yy$actual_density_u,
     fos[6,2],fos[6,3])
 
-
- 
-
-outcomes<- lapply(1:nrow(yy),function(x)
-    {
-    ## MATRIX OF PROBABILITIES TO SIMULATE OUTCOMES
-    y_hat<-matrix(NA,nrow=1,ncol=nrow(confModSet))
-    for(i in 1:length(confModSet$model_indx))
+yhat<-matrix(0,nrow=nrow(yy),ncol=nrow(confModSet))
+     for(i in 1:length(confModSet$model_indx))
         {
-        mm<- paste("~",paste(confModSet$pred[i],collapse="+"))
-        mm<- model.matrix(as.formula(mm),yy[x,])   
-        
-        ## INDEX FOR MODEL OUTPUT
         xx<- confModSet$model_indx[i]
-        
-        ### VARIANCE COMPONENTS
-        re<- VarCorr(out_foster[[xx]])$samp[1] 
-        vcv<-suppressWarnings(as.matrix(vcov(out_foster[[xx]])))
-        pvar1 <- diag(mm %*% tcrossprod(vcv,mm))
-        tvar1 <- pvar1+re ## TOTAL VARIANCE
-
-        ## y_hat pr survival in order of weights
-        y_hat[,i]<-rnorm(1,mm%*%fixef(out_foster[[xx]]),tvar1)
+        yhat[,i]<-predict(out_foster[[xx]],yy, type="link",re.form = NA,allow.new.levels=TRUE)       
         }
-        y_hat<-plogis(sum(y_hat %*% confModSet$w))
+ssss<-yhat %*% confModSet$w
         
         
-        ## NUMBER OF SURVIVORS
-        morts<-rbinom(1,
-            yy[x,]$n_per_trip,
-            y_hat)
-        print(x/nrow(yy))
-        return(morts)
-        })
-        
-        
-        
-    tmp<- data.frame(
-        id=max(yyy[[x]]$id),
-        outplantLocation= max(yyy[[x]]$out_location),
-        density=max(yyy[[x]]$density_u),
-        truckVolume=max(yyy[[x]]$truckVolume_u),
-        ntranslocated=max(yyy[[x]]$ntrap), 
-        nTrips= max(yyy[[xx]]$n_trips),
-        totalLoading=sum(yyy[[x]]$loadingTime_u),
-        totalHauling=sum(yyy[[x]]$haulingTime_u)*2,
-        totalMortalities=rbinom(1,yy[x,]$n_per_trip,
-            y_hat[,i]),
-        totalTransported=sum(yyy[[x]]$n_per_trip))
-    return(tmp)
-    })
+## NUMBER OF SURVIVORS
+yy$morts<-rbinom(nrow(yy),
+    yy$n_per_trip,
+    plogis(yhat %*% confModSet$w))       
 
-    
-    
-outcomes<- do.call("rbind",outcomes)
+   
 
-write.csv(outcomes, "./output/outcomes.csv")
+
+   
+tmp<- ddply(yy,.(id),summarize,
+    id=max(id),
+    outplantLocation= max(out_location),
+    density=max(density_u),
+    truckVolume=max(truckVolume_u),
+    ntranslocated=max(ntrap), 
+    nTrips= max(n_trips),
+    totalLoading=sum(loadingTime_u),
+    totalHauling=sum(haulingTime_u)*2,
+    totalMortalities=sum(morts),
+    totalTransported=sum(n_per_trip))
+
+
+write.csv(tmp, "./output/outcomes.csv")
