@@ -13,7 +13,7 @@ weath<-read.csv("dat/weather_dat.csv")
 trans<-read.csv("./dat/transport_data_new.csv",skip=3) # dexter 2013
 
 prds<-matrix(c( 
-# Trip and truck specific variables
+    # Trip and truck specific variables
 	"loadingTime","Loading time (min)*", 
 	"haulingTime","Hauling Time (min)",
 	"tot_time","Total time handling (min)",
@@ -23,7 +23,7 @@ prds<-matrix(c(
 	"fish_per_vol","Number of fish per truck volume (no./m3)",
 	"delta_temp","Difference in temperature between collection facility and tank (C)",
 	"delta_trip_temp","Difference in temperature trip (C)",
-# Trap and loading conditions
+    # Trap and loading conditions
 	"doy","Day of the year transported",
 	"trap_total","Number of fish in trap",# number in trap
 	"waterTempCollSite","Water temperature at collection facility (C)",
@@ -31,7 +31,7 @@ prds<-matrix(c(
 	"day_bet","Average number of days since last trap tending",
 	"cloudcover","Cloud cover index",
 	#"waterTempRelease", "Water temperature at liberation site",
-# Run size, timing, and tributary conditions
+    # Run size, timing, and tributary conditions
 	"run_size","Run size",	
 	"doy50","Day of the year 50% of run passed Willamette Falls",
 	"dd_01","Degree days from first fish (C)",

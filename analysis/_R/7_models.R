@@ -72,5 +72,4 @@ for(i in 1:length(mods))
 		control=glmerControl(optimizer="bobyqa"))
 		}
 out_dexter<- out
-
-
+save(out_foster,out_dexter, file="output/model-fits.Rdata")

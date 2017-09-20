@@ -162,4 +162,36 @@ dat<- out
 prds<-rbind(prds,data.frame(pred="1",
 	predictor="Intercept only",standardize=0))
 
-#aggregate(fish_per_vol~location,dat_unstd,max)
+
+    
+    
+#######################################################################
+#
+#  DATA TRANSFORMATIONS
+#
+#######################################################################    
+
+dat_unstd$lnhaulingTime<- log(dat_unstd$haulingTime)
+loc_sum<- data.frame(
+    location=tapply(as.character(dat_unstd$waterbody),
+        dat_unstd$waterbody,unique),
+    n=tapply(dat_unstd$waterbody,dat_unstd$waterbody,length),
+    lnmn=tapply(dat_unstd$lnhaulingTime,dat_unstd$waterbody,mean,na.rm=TRUE),
+    lnsd=tapply(dat_unstd$lnhaulingTime,dat_unstd$waterbody,sd,na.rm=TRUE))
+dens_sum<- aggregate(fish_per_vol~location,dat_unstd,max)
+tv_sum<- table(dat_unstd$location,dat_unstd$truckVolume)
+
+out_locs<- ddply(dat_unstd,.(location,year,waterbody),
+    summarise,
+    n=length(na.omit(lnhaulingTime)),
+    lnhaulingTime=mean(na.omit(lnhaulingTime)),
+    sdhTime=sd(as.numeric((haulingTime))),
+    min_haulingTime=mean(na.omit(haulingTime)),
+    max_haulingTime=mean(na.omit(haulingTime)))
+
+
+	
+dat_unstd$mn<- dat_unstd$loadingTime/dat_unstd$nFish
+x<-aggregate(mn~location,dat_unstd,median)# what is used for analysis
+    
+	

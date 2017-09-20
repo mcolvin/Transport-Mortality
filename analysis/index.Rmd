@@ -1,11 +1,13 @@
 ---
 title: "Transport ARM"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document
 ---
 
 <!--
 * need to update yaml to play with Jekyll
-knit("index.Rmd")# returns md file
+rmarkdown::render("index.Rmd")# returns md file
 
 ##
 * add location to dataset and then sim time to 
@@ -14,44 +16,22 @@ use that info to get at rewards
     * bin density
     * by outplant location
     * 
+    in the P (transition matrix) check
+    cpt  P[1,,1], do not run the simulations 
+    again they take too long.
 -->
 
 ```{r,echo=FALSE,warning=FALSE, message=FALSE}
-source("R/1_global.R") 	
-source("R/2_functions.R")         
-source("R/3_load.R")     
-source("R/4_clean.R" )
-source("R/5_tables.R") 
-source("R/6_figures.R")  	
-source("R/7_models.R")
-#source("R/8_analysis.R")
-
-```
-
-```{r}
-dat_unstd$totalTrans<- dat_unstd$nFish + dat_unstd$nJacks
-
-run_comp<- aggregate(cbind(trap_total,totalTrans)~year+doy+location,dat_unstd,max)
-run_comp$flag<- ifelse(run_comp$trap_total<run_comp$totalTrans,1,0)
-run_comp<- subset(run_comp,flag==0)
-
-fit<- glm(cbind(totalTrans,(trap_total-totalTrans))~location*doy*year,
-    data=run_comp,
-    family="binomial")
-fit<- glm(cbind(totalTrans,(trap_total-totalTrans))~location*doy,
-    data=run_comp,
-    family="binomial")   
-    
-run_comp$p<- run_comp$totalTrans/run_comp$trap_total
-library(lattice)
-xyplot(p~doy|year,run_comp, subset=location=="Foster Dam")
-xyplot(p~doy|year,run_comp, subset=location=="Dexter Dam")
-
-
-run_comp$phat<- predict(fit, run_comp, type="response")
-plot(p~phat,run_comp)
-
-
+source("_R/1_global.R") 	
+source("_R/2_functions.R")         
+source("_R/3_load.R")     
+source("_R/4_clean.R" )
+source("_R/5_tables.R") 
+source("_R/6_figures.R")  	
+#source("_R/7_models.R")
+load("output/model-fits.Rdata")# results of line 31
+#source("_R/8_analysis.R")
+outcomes<- read.csv("./output/outcomes.csv")# results of line 33
 ```
 
 
@@ -97,175 +77,13 @@ There are 3 truck volumes used at Dexter Dam
 
 It takes ~0.25 minutes to process a fish at Foster Dam
 The most number of fish ever transported at Dexter Dam was 414 in a day
+
+
+
 ## Predicting survival
-
-
-
-
 First the predictors need to be 
-
-```{r,echo=FALSE,eval=FALSE}
-# FIXED AND RANDOM EFFECTS FOR CONFIDENCE MODEL SETS
-ms<- tables(3) # GET MODEL SELECTION RESULTS
-# FOSTER DAM
-confModSet<- subset(ms[ms$location=="Foster Dam",])
-# prds MOST ARE STANDARDIZED THEREFORE -2,-1,0,1,2
-# data.frame TO GENERATE STOCHASTIC REALIZATIONS OF INPUTS
-confModSet<- merge(confModSet,prds,by="predictor",all.x=TRUE)
-confModSet<- confModSet[order(confModSet$w,decreasing=TRUE),]
-
-## NUMBER OF STOCHASTIC REPLICATES
-n<- 10000
-
-pdat<- lapply(1:nrow(confModSet),function(x)
-    {
-    if(confModSet$standardize[x]==1){xx<-runif(n,-2,2)}
-    if(confModSet$standardize[x]==0 & confModSet$pred[x]!=1){xx<-sample(c(1:4),
-        n,replace=TRUE)}
-    if(confModSet$standardize[x]==0 & confModSet$pred[x]==1){xx<-rep(1,n)}  
-    return(xx)
-    })
-
-    
-## COMBINE UP AND CREATE A DATA.FRAME
-## TO PREDICT SURVIVALS FOR
-yy<- as.data.frame(do.call("cbind",pdat))
-
-
-## NAMES FOR MODEL.MATRIX
-names(yy)<- confModSet$pred 
-yy$trip_no<- as.factor(yy$trip_no)
-# NUMBER OF FISH TO TRANSLOCATE
-yy$ntrap<- floor(runif(n,1,89))## max translocated at foster
-    
-## ASSIGN LOCATION TO OUTPLANT TO
-yy$out_location<- sample(c(1:3),n,replace=TRUE)
-
-yy$haulingTime_u<- 0
-indx<- which(yy$out_location==1)
-yy[indx,]$haulingTime_u<- rlnorm(length(indx),2.970195,0.52626145)
-indx<- which(yy$out_location==2)
-yy[indx,]$haulingTime_u<- rlnorm(length(indx),3.390801, 0.06450340)
-indx<- which(yy$out_location==3)
-yy[indx,]$haulingTime_u<- rlnorm(length(indx),3.898760,0.19941085)
-    
-## TOTAL TRIP TIME
-yy$tripTime<-yy$haulingTime_u* 2
-
-
-## TRUCK VOLUMES
-yy$truckVolume_u<- sample(c(7.57082,9.463525,10.220607),
-    n,replace=TRUE)
-### STANDARDIZE FOR ESTIMATING MORTALITY
-yy$fish_per_vol<- scale(yy$truckVolume_u,
-		center= fos[which(fos[,1]==8),2],
-		scale = fos[which(fos[,1]==8),3])
-
-        
-## DENSITY
-yy$density_u<- sample(c(1,5,10,15,20,25, 30,35, 40),
-    n,replace=TRUE)
-### STANDARDIZE DENSITY FOR ESIMATING MORTALITY
-yy$fish_per_vol<- scale(yy$density_u,
-		center= fos[which(fos[,1]==31),2],
-		scale = fos[which(fos[,1]==31),3])
-        
-## NUMBER OF TRIPS
-### HOW MANY CAN FIT IN THE TRUCK GIVEN DENSITY
-yy$n_per_trip<- floor(yy$density_u*yy$truckVolume_u)
-yy$n_trips<- ceiling(yy$ntrap/yy$n_per_trip)
-yy$fish_left_over<- ifelse(yy$n_trips>1,
-    yy$ntrap-((yy$n_trips-1)*yy$n_per_trip),0)
-
-    
-    
-    
-## NEED TO BREAK UP TRIPS GIVEN SCENARIO (MULTIPLE TRIPS)...    
-yy$id<- 1:n
-
-yyy<- lapply(1:n,function(x)
-    {
-    ## expand dataset
-    out<- yy[rep(x,yy[x,]$n_trips),]
-
-    out$trip_no<-c(1:nrow(out))
-    out$trip_no<- factor(out$trip_no,levels=c(1,2,3,4))
-    indx<- which.max(out$trip_no)    
-    if(indx>1){out[indx,]$n_per_trip<- out[indx,]$fish_left_over}
-    if(indx==1){out[indx,]$n_per_trip<- out[indx,]$ntrap}
-
-    ## LOADING TIME GIVEN VOLUME AND DENSITY  
-    out$loadingTime_u<- out$n_per_trip*4.6
-    out$loadingTime<- scale(out$loadingTime_u,
-        fos[1,2],fos[1,3])
-        
-    out$actual_density_u<- out$n_per_trip/out$truckVolume_u   
-    out$fish_per_vol<- scale(out$actual_density_u,
-        fos[6,2],fos[6,3])
-    return(out)
-    })
-    
-    
-
- 
-```
-
 Now we take that dataset and generate predictions. But to get 
 the full variance we need to do this in chunks. 
-
-```{r,eval=FALSE}
-outcomes<- lapply(1:n,function(x)
-    {
-    ## MATRIX OF PROBABILITIES TO SIMULATE OUTCOMES
-    nn<-nrow(yyy[[x]])
-    y_hat<-matrix(NA,nrow=nn,ncol=nrow(confModSet))
-    for(i in 1:length(confModSet$model_indx))
-        {
-        mm<- paste("~",paste(confModSet$pred[i],collapse="+"))
-        mm<- model.matrix(as.formula(mm),yyy[[x]])   
-        
-        ## INDEX FOR MODEL OUTPUT
-        xx<- confModSet$model_indx[i]
-        ### VARIANCE COMPONENTS
-        re<- VarCorr(out_foster[[xx]])$samp[1] 
-        vcv<-suppressWarnings(as.matrix(vcov(out_foster[[xx]])))
-        pvar1 <- diag(mm %*% tcrossprod(vcv,mm))
-        tvar1 <- pvar1+re ## TOTAL VARIANCE
-
-        ## y_hat pr survival in order of weights
-        y_hat[,i]<-plogis(rnorm(nn,mm%*%fixef(out_foster[[xx]]),tvar1))
-        ## NUMBER OF SURVIVORS
-        y_hat[,i]<-rbinom(nn,
-            yyy[[x]]$n_per_trip,
-            y_hat[,i])        
-        }
-        
-    tmp<- data.frame(
-        id=max(yyy[[x]]$id),
-        outplantLocation= max(yyy[[x]]$out_location),
-        density=max(yyy[[x]]$density_u),
-        truckVolume=max(yyy[[x]]$truckVolume_u),
-        ntranslocated=max(yyy[[x]]$ntrap), 
-        nTrips= max(yyy[[xx]]$n_trips),
-        totalLoading=sum(yyy[[x]]$loadingTime_u),
-        totalHauling=sum(yyy[[x]]$haulingTime_u)*2,
-        totalMortalities=sum(y_hat %*% confModSet$w),
-        totalTransported=sum(yyy[[x]]$n_per_trip))
-    return(tmp)
-    })
-
-outcomes<- do.call("rbind",outcomes)
-
-write.csv(outcomes, "./output/outcomes.csv")
-
-    
-```
-
-```{r}
-outcomes<- read.csv("./output/outcomes.csv")
-```
-
-
 Now we link the many predicted survivals to the number of fish to 
 translocate (i.e., number of fish in trap. 
 
@@ -291,13 +109,17 @@ mn<- min(outcomes$effort)
 outcomes$effort_sc<- (mx-outcomes$effort)/(mx-mn)
     
     
+    
+    
 ### MAX(SURVIVORS)    
 outcomes$survivors<- outcomes$totalTransported-
     outcomes$totalMortalities
 ### SCALE SO LARGE SURVIVORS = 1
-mx<-max(outcomes$effort)
-mn<- min(outcomes$effort)
+mx<-max(outcomes$survivors)
+mn<- min(outcomes$survivors)
 outcomes$survivors_sc<-  (outcomes$survivors-mn)/(mx-mn)
+
+
 ```
 
 
@@ -307,7 +129,12 @@ outcomes$survivors_sc<-  (outcomes$survivors-mn)/(mx-mn)
 ```{r}
 outcomes$d<- outcomes$density
 d<- unique(outcomes$d)
-outcomes$U<- 0.5*outcomes$survivors_sc+0.5*outcomes$effort_sc
+W<- 0.7
+outcomes$U<- W*outcomes$survivors_sc+(1-W)*outcomes$effort_sc
+
+## SET DENSITIES GREATER THAN THE FISH NUMBER TO 0
+outcomes$U<-ifelse(outcomes$density>outcomes$ntranslocated/outcomes$truckVolume,0,outcomes$U)
+
 outcomes$tmp<- 1
 
 
@@ -327,22 +154,21 @@ outcomes$S2<- paste(outcomes$survivors_b, outcomes$outplantLocation,
     
 R<- dcast(outcomes, S1~d,
     value.var='U', mean)[,-1]
-
 ```
+
+
+
 ### Transition matrices
 
 
 Now we make transition matrices given each decision.
 
 ```{r}
-
 P<- xtabs(~ S1 + S2 + d, outcomes)
-
 P<- as.array(prop.table(P,c(1,3)))
 
 library(MDPtoolbox)
 out<-mdp_policy_iteration(P=P, R=R, discount=.99999)
-
 
 policyTable<- data.frame(S= rownames(P[,,1]),
     d=d[out$policy])
@@ -479,12 +305,16 @@ kable(tbl4,digits=2,caption = NULL,row.names=FALSE)
 
 	
 
-# Tables
+
 
 
 
 
 Table 1.  Candidate explanatory variables, descriptions, and hypotheses. 
+
+```{r,echo=FALSE,asis=TRUE}
+kable(tables(1))
+```
 
 
 |Predictor type                              |Predictor                                                          |Description and hypothesis                                                                                                                                                                                                                                                                                                      |
