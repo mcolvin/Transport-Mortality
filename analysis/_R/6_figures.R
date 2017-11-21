@@ -156,8 +156,8 @@ if(n==2.1)
    	    points(p_mort~dd_01, dat_unstd, subset=location=="Foster Dam",col='black')	     
         
 		}
-	if(n==2.2)
-		{
+if(n==2.2)
+    {
 		# DEXTER
 		grr_dexter<- subset(tables(3),location=="Dexter Dam")	
 		pdat<- data.frame(X=seq(-4,4,0.01))
@@ -196,8 +196,95 @@ if(n==2.1)
 		}
 if(n==3)
 	{
+	# OPTIMAL DENSITIES FOR FOSTER
+	## POLICY PLOT FOR OPTIMAL DENSITIES
+
+	# FOSTER DAM
+	out2<- optimal_density(mortWght=0.5,maxDens=80,maxEffort=12,location="Foster Dam")
+	# DEXTER DAM
+	out3<- optimal_density(mortWght=0.5,maxDens=80,maxEffort=12,location="Dexter Dam")
+ 
+    
+    par(mfrow=c(2,3),oma=c(2,2.75,1,1),mar=c(2,1,0,0))
+    plot(fishDens~n,out2,type="n",ylim=c(1,9),las=1)
+    points(fishDens~n,out2,type="l",subset=truckVolume==7.6 & haulingTime==22,lty=1)
+    points(fishDens~n,out2,type="l",subset=truckVolume==9.5 & haulingTime==22,lty=2)
+    points(fishDens~n,out2,type="l",subset=truckVolume==10.2 & haulingTime==22,lty=3)
+    panLab("a) 44 min. round trip")  
+    plot(fishDens~n,out2,type="n",ylim=c(1,9),las=1,yaxt='n')
+    axis(side=2,at=axTicks(2),label=FALSE)
+    points(fishDens~n,out2,type="l",subset=truckVolume==7.6 & haulingTime==30,lty=1)
+    points(fishDens~n,out2,type="l",subset=truckVolume==9.5 & haulingTime==30,lty=2)
+    points(fishDens~n,out2,type="l",subset=truckVolume==10.2 & haulingTime==30,lty=3)
+    panLab("b) 60 min. round trip")  
+    plot(fishDens~n,out2,type="n",ylim=c(1,9),las=1,yaxt='n')
+    axis(side=2,at=axTicks(2),label=FALSE)
+    points(fishDens~n,out2,type="l",subset=truckVolume==7.6 & haulingTime==51,lty=1)
+    points(fishDens~n,out2,type="l",subset=truckVolume==9.5 & haulingTime==51,lty=2)
+    points(fishDens~n,out2,type="l",subset=truckVolume==10.2 & haulingTime==51,lty=3)    
+    panLab("c) 102 min. round trip")  
+ 
+    ## DEXTER DAM
+    plot(fishDens~n,out3,type="n",ylim=c(1,11),las=1)
+    points(fishDens~n,out3,type="l",subset=truckVolume==7.6 & haulingTime==67,lty=1)
+    points(fishDens~n,out3,type="l",subset=truckVolume==9.5 & haulingTime==67,lty=2)
+    points(fishDens~n,out3,type="l",subset=truckVolume==10.2 & haulingTime==67,lty=3)
+    panLab("d) 134 min. round trip")      
+    plot(fishDens~n,out3,type="n",ylim=c(1,11),las=1,yaxt='n')
+    axis(side=2,at=axTicks(2),label=FALSE)
+    points(fishDens~n,out3,type="l",subset=truckVolume==7.6 & haulingTime==72,lty=1)
+    points(fishDens~n,out3,type="l",subset=truckVolume==9.5 & haulingTime==72,lty=2)
+    points(fishDens~n,out3,type="l",subset=truckVolume==10.2 & haulingTime==72,lty=3)
+    panLab("e) 144 min. round trip")  
+    plot(fishDens~n,out3,type="n",ylim=c(1,11),las=1,yaxt='n')
+    axis(side=2,at=axTicks(2),label=FALSE)
+    points(fishDens~n,out3,type="l",subset=truckVolume==7.6 & haulingTime==110,lty=1)
+    points(fishDens~n,out3,type="l",subset=truckVolume==9.5 & haulingTime==110,lty=2)
+    points(fishDens~n,out3,type="l",subset=truckVolume==10.2 & haulingTime==110,lty=3)    
+    legend("bottomright",c("7.6","9.5","10.2"),
+        title=expression(paste("Truck volume (m"^{3},")",sep="")),
+        lty=c(1,2,3),
+        bty='n')
+    panLab("f) 220 min. round trip")       
+    text(290,9,"Effort \n exceeded \n 12 hours")
+    mtext(side=2,expression(paste("Hauling density (fish m"^{-3},")",sep="")),outer=TRUE,line=1)
+    mtext(side=1,"Number of fish to haul",outer=TRUE,line=1)
+    
+    if(7==8)
+        {
+        abline(h=10.2,lty=2)
+        plot(fishDens~n,fos,type="n",ylim=c(0,11))  
+        points(fishDens~n,fos,type="l",subset=truckVolume==9.5 & wgt==0.25)
+        points(fishDens~n,fos,type="l",subset=truckVolume==9.5 & wgt==0.5)
+        points(fishDens~n,fos,type="l",subset=truckVolume==9.5 & wgt==0.75)
+        abline(h=10.2,lty=2)   
+        plot(fishDens~n,fos,type="n",ylim=c(0,11))  
+        points(fishDens~n,fos,type="l",subset=truckVolume==10.2 & wgt==0.25)
+        points(fishDens~n,fos,type="l",subset=truckVolume==10.2 & wgt==0.5)
+        points(fishDens~n,fos,type="l",subset=truckVolume==10.2 & wgt==0.75) 
+        abline(h=10.2,lty=2)
+
+        plot(fishDens~n,dex,type="n",ylim=c(0,11))
+        points(fishDens~n,dex,type="l",subset=truckVolume==7.6 & wgt==0.25)
+        points(fishDens~n,dex,type="l",subset=truckVolume==7.6 & wgt==0.5)
+        points(fishDens~n,dex,type="l",subset=truckVolume==7.6 & wgt==0.75)
+        abline(h=10.2,lty=2)
+        plot(fishDens~n,dex,type="n",ylim=c(0,11))  
+        points(fishDens~n,dex,type="l",subset=truckVolume==9.5 & wgt==0.25)
+        points(fishDens~n,dex,type="l",subset=truckVolume==9.5 & wgt==0.5)
+        points(fishDens~n,dex,type="l",subset=truckVolume==9.5 & wgt==0.75)
+        abline(h=10.2,lty=2)   
+        plot(fishDens~n,dex,type="n",ylim=c(0,11))  
+        points(fishDens~n,dex,type="l",subset=truckVolume==10.2 & wgt==0.25)
+        points(fishDens~n,dex,type="l",subset=truckVolume==10.2 & wgt==0.5)
+        points(fishDens~n,dex,type="l",subset=truckVolume==10.2 & wgt==0.75) 
+        abline(h=10.2,lty=2)   
+        }
+	}
+if(n==3.1)
+	{
 	# OPTIMAL DECISIONS FOR FOSTER
-	## POLICY PLOT
+	## POLICY PLOT FOR NUMBER OF HAULS
 
 	# FOSTER DAM
 	

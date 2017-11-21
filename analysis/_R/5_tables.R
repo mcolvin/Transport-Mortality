@@ -158,8 +158,48 @@ tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 		
 		return(out)
 		}
-		
-		
+if(n==6)
+    {	# SUMMARY OF DAM SPECIFIC OUTPLANT TRAVEL TIMES
+    ddply(dat_unstd,.(location,waterbody),summarize,
+        n=length(haulingTime),
+        mn=mean(haulingTime,na.rm=TRUE))
+    aggregate(haulingTime~waterbody+location, dat_unstd,mean)
+}	
+if(n==98)
+    {
+    # RANDOM EFFECTS MODEL SELECTION
+    ## FOSTER
+    tmp<-as.data.frame(t(sapply(1:length(out_re_fos), function(x) summary(out_re_fos[[x]])$AICtab)))
+    tmp$model<- sapply(1:length(out_re_fos), function(x){
+        tmp<- paste(as.character(summary(out_re_fos[[x]])$call$formula),collapse="~")
+        return(substr(tmp,2,nchar(tmp)))})
+    tmp$model_indx<- c(1:length(out_re_fos))
+    tmp$k<- nrow(dat)-tmp$df.resid
+    tmp$AICc<- tmp$AIC+((2*tmp$k*(tmp$k+1))/(nrow(dat)-tmp$k-1))
+    tmp$dAICc<- tmp$AICc-min(tmp$AICc)
+    tmp<- tmp[order(tmp$dAICc, decreasing=FALSE),]
+    tmp$lik<- exp(-0.5*tmp$dAICc)
+    tmp$w<- tmp$lik/sum(tmp$lik)
+    tmp$cum_w<- cumsum(tmp$w)
+    tmp$location<-"Foster Dam"
+    out<- tmp
+
+    ## DEXTER
+    tmp<-as.data.frame(t(sapply(1:length(out_re_dex), function(x) summary(out_re_dex[[x]])$AICtab)))
+    tmp$model<- sapply(1:length(out_re_dex), function(x){
+        tmp<- paste(as.character(summary(out_re_dex[[x]])$call$formula),collapse="~")
+        return(substr(tmp,2,nchar(tmp)))})
+    tmp$model_indx<- c(1:length(out_re_dex))
+    tmp$k<- nrow(dat)-tmp$df.resid
+    tmp$AICc<- tmp$AIC+((2*tmp$k*(tmp$k+1))/(nrow(dat)-tmp$k-1))
+    tmp$dAICc<- tmp$AICc-min(tmp$AICc)
+    tmp<- tmp[order(tmp$dAICc, decreasing=FALSE),]
+    tmp$lik<- exp(-0.5*tmp$dAICc)
+    tmp$w<- tmp$lik/sum(tmp$lik)
+    tmp$cum_w<- cumsum(tmp$w)
+    tmp$location<-"Dexter Dam"
+    out<- rbind(out,tmp)
+    }		
 		
 		
 	
