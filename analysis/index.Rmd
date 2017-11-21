@@ -6,7 +6,6 @@ output:
 ---
 
 <!--
-* need to update yaml to play with Jekyll
 rmarkdown::render("index.Rmd")# returns md file
 
 ##
@@ -31,11 +30,28 @@ source("_R/6_figures.R")
 #source("_R/7_models.R")
 load("output/model-fits.Rdata")# results of line 31
 #source("_R/8_analysis.R")
-outcomes<- read.csv("./output/outcomes.csv")# results of line 33
+outcomes<- fread("./output/outcomes.csv")# results of line 33
 ```
 
 
 ## Decision space
+
+* Density
+
+Conditional on
+* Outplant location
+* Truck volume
+* Fish to outplant/n in trap
+
+
+
+truckVolume
+ntrap
+out_location
+
+
+
+
 
 ### Outplant densities
 
@@ -80,6 +96,19 @@ The most number of fish ever transported at Dexter Dam was 414 in a day
 
 
 
+There are 3 main spots foster fish are outplanted
+                                               n   mean (minutes)
+10 Foster Dam               S.S. -  Gordon Rd. 51  50.49020
+11 Foster Dam                   S.S. - Caukins 22  22.04545
+12 Foster Dam                S.S. - River Bend 79  29.74359
+
+
+There are 3 main spots foster fish are outplanted
+                                               n   mean (minutes)
+3  Dexter Dam                      M FK CNST P 13  71.53846
+4  Dexter Dam                       M FK PATTY 18 110.05556
+7  Dexter Dam                             N FK 61  67.24590
+
 ## Predicting survival
 First the predictors need to be 
 Now we take that dataset and generate predictions. But to get 
@@ -96,64 +125,17 @@ Time to locations...
 
 The NOAA constraint is 10.56689 fish per m3
 
-```{r,eval=FALSE}
-## UTILITY
 
-### MIN(EFFORT) IN HOURS
-outcomes$effort<- (outcomes$totalHauling*2+
-    outcomes$totalLoading)/60
-outcomes$effort<-ifelse(outcomes$effort>12,12,outcomes$effort)
-### SCALE SO LARGE EFFORT = 0
-mx<-max(outcomes$effort)
-mn<- min(outcomes$effort)
-outcomes$effort_sc<- (mx-outcomes$effort)/(mx-mn)
-    
-    
-    
-    
-### MAX(SURVIVORS)    
-outcomes$survivors<- outcomes$totalTransported-
-    outcomes$totalMortalities
-### SCALE SO LARGE SURVIVORS = 1
-mx<-max(outcomes$survivors)
-mn<- min(outcomes$survivors)
-outcomes$survivors_sc<-  (outcomes$survivors-mn)/(mx-mn)
-
-
-```
 
 
 
 ### Decision and state space
 
 ```{r}
-outcomes$d<- outcomes$density
-d<- unique(outcomes$d)
-W<- 0.7
-outcomes$U<- W*outcomes$survivors_sc+(1-W)*outcomes$effort_sc
 
-## SET DENSITIES GREATER THAN THE FISH NUMBER TO 0
-outcomes$U<-ifelse(outcomes$density>outcomes$ntranslocated/outcomes$truckVolume,0,outcomes$U)
-
-outcomes$tmp<- 1
-
-
-## BIN UP NUMBER TO OUTPLANT
-brks<- seq(0,90,by=10)
-outcomes$ntranslocated_b<- cut(outcomes$ntranslocated,
-    seq(0,90,by=10),include.lowest=TRUE,ordered_result =TRUE,
-    labels=brks[-length(brks)]+5)
-outcomes$S1<- paste(outcomes$ntranslocated_b, outcomes$outplantLocation, 
-    outcomes$truckVolume,sep="-")     
-outcomes$survivors_b<- cut(outcomes$survivors,
-    seq(0,90,by=10),include.lowest=TRUE,ordered_result =TRUE,
-    labels=brks[-length(brks)]+5)
-outcomes$S2<- paste(outcomes$survivors_b, outcomes$outplantLocation, 
-    outcomes$truckVolume,sep="-") 
-    
-    
 R<- dcast(outcomes, S1~d,
     value.var='U', mean)[,-1]
+R[is.na(R)]<-0
 ```
 
 
@@ -185,6 +167,64 @@ levelplot(d~nToTranslocate+truckVolume,
 xx<-subset(policyTable, location==1 & truckVolume>10)
 xx[order(xx$nToTranslocate),]
 
+
+
+aggregate(U~d, tmp,subset=ntranslocated_b==25 &
+    outplantLocation==1 & 
+    truckVolume==10.220607, mean)
+
+    
+    
+    
+   5                1     7.57082 
+    
+xx<-aggregate(U~d+ntranslocated_b+outplantLocation+truckVolume, tmp, mean)    
+xx$combo<- paste(xx$ntranslocated_b, xx$outplantLocation, xx$truckVolume ,sep="-")
+opt<-lapply(unique(xx$combo),function(x)
+    {
+    dat<-xx[xx$combo==x,]
+    return(dat[which.max(dat$U),])
+    })
+
+opt<- do.call("rbind",opt)
+xx<-aggregate(U~d+ntranslocated_b+outplantLocation, tmp, mean)    
+
+opt$ntranslocated<-as.numeric(
+    as.character(opt$ntranslocated_b))
+plot(d~ntranslocated,opt,
+    subset=truckVolume==10.220607&
+    outplantLocation==1,
+    type='b')
+points(d~ntranslocated,opt,
+    subset=truckVolume==10.220607&
+    outplantLocation==2,
+    type='b')
+
+
+    
+    
+    
+
+
+
+plot(U~as.numeric(ntranslocated_b),xx,
+    subset=truckVolume==10.220607 & outplantLocation==1&
+    d==1,type='b')
+points(U~as.numeric(ntranslocated_b),xx,
+    subset=truckVolume==10.220607 & outplantLocation==1&
+    d==2,type='b') 
+
+    
+plot(U~d,xx,subset=truckVolume==10.220607 & 
+    outplantLocation==1&ntranslocated_b==55,type='b',ylim=c(0,0.25))
+points(U~d,xx,subset=truckVolume==10.220607 & 
+    outplantLocation==2&ntranslocated_b==55,type='b',col='red')
+points(U~d,xx,subset=truckVolume==10.220607 & 
+    outplantLocation==3&ntranslocated_b==55,type='b',col='green')
+
+abline(v=policyTable[policyTable$truckVolume==10.220607 & policyTable$nToTranslocate==55,]$d)
+
+    
 ```
 
 

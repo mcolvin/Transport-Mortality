@@ -34,6 +34,8 @@ yy$trip_no<- as.factor(yy$trip_no)
 # NUMBER OF FISH TO TRANSLOCATE
 yy$ntrap<- floor(runif(n,1,89))## max translocated at foster
     
+
+    
 ## ASSIGN LOCATION TO OUTPLANT TO
 yy$out_location<- sample(c(1:3),n,replace=TRUE)
 
@@ -59,7 +61,7 @@ yy$fish_per_vol<- scale(yy$truckVolume_u,
 
         
 ## DENSITY
-yy$density_u<- sample(c(1,5,10,15,20,25,30,35,40),
+yy$density_u<- sample(c(1:15,20,25,30,35,40),
     n,replace=TRUE)
 ### STANDARDIZE DENSITY FOR ESIMATING MORTALITY
 yy$fish_per_vol<- scale(yy$density_u,
@@ -113,29 +115,251 @@ yhat<-matrix(0,nrow=nrow(yy),ncol=nrow(confModSet))
         xx<- confModSet$model_indx[i]
         yhat[,i]<-predict(out_foster[[xx]],yy, type="link",re.form = NA,allow.new.levels=TRUE)       
         }
-ssss<-yhat %*% confModSet$w
         
+yy$mort<-plogis(yhat %*% confModSet$w)
         
 ## NUMBER OF SURVIVORS
 yy$morts<-rbinom(nrow(yy),
     yy$n_per_trip,
     plogis(yhat %*% confModSet$w))       
+ 
+yy<-data.table(yy)
+setkey(yy, id)
 
-   
+tmp<-yy[,j=list(
+        id=base::max(id),
+        outplantLocation=base::max(out_location),
+        density=base::max(density_u),
+        truckVolume=base::max(truckVolume_u),
+        ntranslocated=base::max(ntrap), 
+        nTrips= base::max(n_trips),
+        totalLoading=sum(loadingTime_u),
+        totalHauling=sum(haulingTime_u)*2,
+        totalMortalities=sum(morts),
+        totalTransported=sum(n_per_trip)), 
+    by = id]
+
+tmp$mortality_rate<- tmp$totalMortalities/tmp$totalTransported
+tmp$survivors<- tmp$totalTransported-tmp$totalMortalities   
+tmp$tmp<- 1
 
 
-   
-tmp<- ddply(yy,.(id),summarize,
-    id=max(id),
-    outplantLocation= max(out_location),
-    density=max(density_u),
-    truckVolume=max(truckVolume_u),
-    ntranslocated=max(ntrap), 
-    nTrips= max(n_trips),
-    totalLoading=sum(loadingTime_u),
-    totalHauling=sum(haulingTime_u)*2,
-    totalMortalities=sum(morts),
-    totalTransported=sum(n_per_trip))
+## UTILITY
+
+### MIN(EFFORT) IN HOURS
+tmp$effort<- (tmp$totalHauling*2+
+    tmp$totalLoading)/60
+tmp$effort<-ifelse(tmp$effort>12,12,tmp$effort)
+### SCALE SO LARGE EFFORT = 0
+mx<-max(tmp$effort)
+mn<- min(tmp$effort)
+tmp$effort_sc<- (mx-tmp$effort)/(mx-mn)
+    
+ 
+ 
+    
+### MIN(MORTALITY)    
+### SCALE SO LARGE SURVIVORS = 1
+mx<-max(tmp$mortality_rate)
+mn<- min(tmp$mortality_rate)
+tmp$mortality_rate_sc<-  (tmp$mortality_rate-mn)/(mx-mn)
 
 
+tmp$d<- tmp$density
+d<- unique(tmp$d)
+W<- 0.5
+tmp$U<- W*tmp$effort_sc+(1-W)*tmp$mortality_rate_sc
+
+## SET DENSITIES GREATER THAN THE FISH NUMBER TO 0
+tmp$U<-ifelse(tmp$density>tmp$ntranslocated/tmp$truckVolume,0,tmp$U)
+
+
+
+
+## BIN UP NUMBER TO OUTPLANT
+brks<- seq(0,100,by=10)
+tmp$ntranslocated_b<- cut(tmp$totalTransported,
+    brks,include.lowest=TRUE,ordered_result =TRUE,
+    labels=brks[-length(brks)]+5)
+tmp$S1<- paste(tmp$ntranslocated_b, tmp$outplantLocation, 
+    tmp$truckVolume,sep="-")   
+ 
+tmp$survivors_b<- cut(tmp$survivors,
+    brks,include.lowest=TRUE,ordered_result=TRUE,
+    labels=brks[-length(brks)]+5)
+tmp$S2<- paste(tmp$survivors_b, 
+    tmp$outplantLocation, 
+    tmp$truckVolume,sep="-") 
+
+    table(tmp$ntranslocated_b)
+    table(tmp$survivors_b)
+    
 write.csv(tmp, "./output/outcomes.csv")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+model<- function()
+	{
+    for(i in 1:obs)
+        {
+        ## DO MORTALITIES OCCUR
+        #logit(p1[i])<-  a1+inprod(X1[i,],beta1)# inprod to do on design matrix
+        logit(p1[i])<-  a1+0*(X1[i]*beta1)# inprod to do on design matrix
+        p_z[i]<- max(0.001, min(p1[i],0.999))
+        Z[i] ~ dbern(p_z[i])
+        
+        ## WHEN MORTALITIES OCCUR
+        #logit(p2[i])<- a2+inprod(X2[i,],beta2)# inprod to do on design matrix
+        logit(p2[i])<- a2+X2[i]*beta2# inprod to do on design matrix
+        p_x[i]<-(max(0.001, min(p2[i],0.999)))*Z[i]
+        y[i]~dbin(p_x[i],n[i])
+        }
+    # PRIORS
+    a1 ~ dnorm(0,0.37)
+    a2 ~ dnorm(0,0.37)
+    for(k in 1:nbeta1)
+        {
+        beta1[k] ~ dnorm(0,0.37)
+        }
+    for(l in 1:nbeta2)
+        {
+        beta2[l] ~ dnorm(0,0.37)
+        }
+    }
+
+X1<-subset(dat,location=="Dexter Dam" & mort[,2]>0)
+X1<-X1[which(X1$mort[,2]>0),]
+jagsdat<-list(
+    # predictors
+    X1= X1[,"Q_50"],
+    X2= X1[,"fish_per_vol"],
+    # response
+    y=X1$mort[,1],
+    n=X1$mort[,2],
+    
+    # indices
+    obs=nrow(X1),
+    nbeta1=1,
+    nbeta2=1)
+ 
+inits<-function(t)
+    {
+    list(a1 = rnorm(1,0,0.37),a2 = rnorm(1,0,0.37),beta1 = rnorm(jagsdat$nbeta1,0,0.37),
+        beta2 = rnorm(jagsdat$nbeta2,0,0.37),Z=rep(1,jagsdat$obs))
+    list(a1 = rnorm(1,0,0.37),a2 = rnorm(1,0,0.37),beta1 = rnorm(jagsdat$nbeta1,0,0.37),
+        beta2 = rnorm(jagsdat$nbeta2,0,0.37),Z=rep(1,jagsdat$obs))        
+    list(a1 = rnorm(1,0,0.37),a2 = rnorm(1,0,0.37),beta1 = rnorm(jagsdat$nbeta1,0,0.37),
+        beta2 = rnorm(jagsdat$nbeta2,0,0.37),Z=rep(1,jagsdat$obs))       
+    }
+params <- c('a1','a2','beta1','beta2')
+
+# THIS WILL ONLY RUN IF YOU HAVE JAGS INSTALLED 
+# AND THE R2jags PACKAGE
+library(R2jags)
+out <- jags(data=jagsdat,
+	inits=inits,
+	parameters=params,	
+	model.file=model,
+	n.chains = 3,	
+	n.iter = 150000,	
+	n.burnin = 60000, 
+	n.thin=1,
+	working.directory=getwd())
+out
+out$BUGSoutput$mean$N
+
+print(out)
+traceplot(out)
+	
+	
+
+
+
+
+
+model<- function()
+	{
+    for(i in 1:obs)
+        {        
+        ## WHEN MORTALITIES OCCUR
+        #logit(p2[i])<- a2+inprod(X2[i,],beta2)# inprod to do on design matrix
+        logit(p2[i])<- a2+X2[i]*beta2# inprod to do on design matrix
+        p_x[i]<-(max(0.001, min(p2[i],0.999)))
+        y[i]~dbin(p_x[i],n[i])
+        }
+    # PRIORS
+    a2 ~ dnorm(0,0.37)
+    for(l in 1:nbeta2)
+        {
+        beta2[l] ~ dnorm(0,0.37)
+        }
+    }
+
+X1<-subset(dat,location=="Dexter Dam" & mort[,2]>0)
+X1<-X1[which(X1$mort[,2]>0),]
+jagsdat<-list(
+    # predictors
+    X2= X1[,"fish_per_vol"],
+    # response
+    y=X1$mort[,1],
+    n=X1$mort[,2],
+    
+    # indices
+    obs=nrow(X1),
+    nbeta1=1,
+    nbeta2=1)
+ 
+inits<-function(t)
+    {
+    list(beta1 = rnorm(jagsdat$nbeta1,0,0.37),
+        beta2 = rnorm(jagsdat$nbeta2,0,0.37),Z=rep(1,jagsdat$obs))
+    list(beta1 = rnorm(jagsdat$nbeta1,0,0.37),
+        beta2 = rnorm(jagsdat$nbeta2,0,0.37),Z=rep(1,jagsdat$obs))        
+    list(beta1 = rnorm(jagsdat$nbeta1,0,0.37),
+        beta2 = rnorm(jagsdat$nbeta2,0,0.37),Z=rep(1,jagsdat$obs))       
+    }
+params <- c('a1','a2','beta1','beta2')
+
+# THIS WILL ONLY RUN IF YOU HAVE JAGS INSTALLED 
+# AND THE R2jags PACKAGE
+library(R2jags)
+out <- jags(data=jagsdat,
+	inits=inits,
+	parameters=params,	
+	model.file=model,
+	n.chains = 3,	
+	n.iter = 150000,	
+	n.burnin = 60000, 
+	n.thin=1,
+	working.directory=getwd())
+out
+
+
+print(out)
+traceplot(out)
+	

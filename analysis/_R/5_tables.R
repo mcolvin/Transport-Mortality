@@ -158,7 +158,13 @@ tables<- function(n,model_fits=NULL, modsel_foster=NULL, modsel_dexter=NULL){
 		
 		return(out)
 		}
-		
+if(n==6)
+    {	# SUMMARY OF DAM SPECIFIC OUTPLANT TRAVEL TIMES
+    ddply(dat_unstd,.(location,waterbody),summarize,
+        n=length(haulingTime),
+        mn=mean(haulingTime,na.rm=TRUE))
+    aggregate(haulingTime~waterbody+location, dat_unstd,mean)
+}	
 if(n==98)
     {
     # RANDOM EFFECTS MODEL SELECTION
